@@ -17,7 +17,8 @@ export function DashboardGemelo() {
                     <CardTitle>Monitor celda</CardTitle>
                 </CardHeader>
                 <CardContent className="h-full">
-                    <Canvas />
+                    {/* <Canvas /> */}
+                    <iframe src="http://localhost:5173/" className="w-full h-full" />
                 </CardContent>
             </Card>
 

@@ -5,7 +5,7 @@ export function setupCamera({ scene, canvas, targetMesh }) {
         "camera1",
         2.45,
         1.35,
-        8,
+        4,
         BABYLON.Vector3.Zero(),
         scene
     );
@@ -16,22 +16,29 @@ export function setupCamera({ scene, canvas, targetMesh }) {
         focusCameraOnMesh({ camera, targetMesh });
     }
 
+
     return camera;
 }
 
 function configureCamera({ camera, canvas }) {
 
-    camera.wheelPrecision = 50;
-    camera.lowerRadiusLimit = 1;
-    camera.upperRadiusLimit = 50;
-    camera.wheelDeltaPercentage = 0.01;
-    camera.pinchDeltaPercentage = 0.01;
-    camera.inertia = 0.7;
-    camera.lowerBetaLimit = 0.1;
-    camera.upperBetaLimit = Math.PI - 0.1;
-    camera.angularSensibilityX = 250;
-    camera.angularSensibilityY = 250;
     camera.attachControl(canvas, true);
+    camera.wheelPrecision = 50;
+    camera.lowerRadiusLimit = 0.1;
+    camera.upperRadiusLimit = 50;
+    camera.wheelDeltaPercentage = 0.03;
+    camera.pinchDeltaPercentage = 0.03;
+    camera.inertia = 0.7;
+
+    camera.lowerAlphaLimit = -Math.PI / 2;
+    camera.upperAlphaLimit = Math.PI * 2;
+
+    camera.lowerBetaLimit = 0;
+    camera.upperBetaLimit = Math.PI;
+
+    /* camera.lowerRadiusLimit = 1;
+    camera.upperRadiusLimit = 12; */
+
 }
 
 export function focusCameraOnMesh({ camera, mesh }) {

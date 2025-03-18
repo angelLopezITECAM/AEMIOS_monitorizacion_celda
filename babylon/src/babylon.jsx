@@ -1,125 +1,218 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
-import { AdvancedDynamicTexture } from "@babylonjs/gui";
+
+
 import "@babylonjs/loaders/glTF";
 import '@babylonjs/inspector';
 
 import { loadCeldaModel } from '@/services/model/loadCeldaModel';
-import { createLabel } from '@/gui/label';
 
-import { setupCamera } from '@/services/babylon/camera';
+import { BombaCatodo } from '@/components/bomba-catodo';
+import { BombaAnodo } from '@/components/bomba-anodo';
+import { Termopar } from '@/components/termopar';
+import { PotenciaGlobal } from '@/components/potencia-global';
+import { Controladora } from '@/components/controladora';
+
+import { createIndicator } from '@/gui/indicator';
+
+import { setupCamera, focusCameraOnMesh } from '@/services/babylon/camera';
+import { setupScene } from '@/services/babylon/scene';
+import '@/assets/panel.css'
+
+
+/* import { setupCamera } from '@/services/babylon/camera-universal'; */
+const partesCelda = [
+    {
+        nameMesh: "Separador teflon GDL-1",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Separador teflon GDL-1",
+                    "Temperatura": "23 ºC"
+                },
+                status: "warning"
+            }
+        },
+    },
+    {
+        nameMesh: "Separador teflon GDL-2",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Separador teflon GDL-2",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "warning"
+        },
+    },
+    {
+        nameMesh: "Separador teflon GDL-2",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Separador teflon GDL-2",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "success"
+        },
+    },
+    {
+        nameMesh: "Separador teflon-aislante-1",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Separador teflon aislante 1",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "warning"
+        },
+    },
+    {
+        nameMesh: "Separador teflon-aislante-2",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Separador teflon aislante 2",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "warning"
+        },
+    },
+    {
+        nameMesh: "Placa bipolar-1",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Placa bipolar 1",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "warning"
+        },
+    },
+    {
+        nameMesh: "Placa bipolar-2",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Placa bipolar 2",
+                    "Temperatura": "67 ºC"
+                }
+            },
+            status: "success"
+        },
+    },
+    {
+        nameMesh: "Placa final 1-1",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Placa final 1-1",
+                    "Temperatura": "67 ºC"
+                }
+            },
+            status: "success"
+        },
+    },
+    {
+        nameMesh: "Placa final 1-2",
+        indicator: {
+            card: {
+                data: {
+                    "Parte": "Placa final 1-2",
+                    "Temperatura": "67 ºC"
+                },
+            },
+            status: "danger"
+        },
+    },
+]
 
 const BabylonScene = () => {
     const canvasRef = useRef(null);
+    const [uiConfig, setUiConfig] = useState(null);
 
+    useEffect(() => {
+        fetch('./guiTexture.json')
+            .then(res => res.json())
+            .then(data => setUiConfig(data))
+            .catch(err => console.error(err));
+    }, []);
 
     useEffect(() => {
         if (canvasRef.current) {
-            // Crear el motor de Babylon.js
-            const engine = new BABYLON.Engine(canvasRef.current, true);
-            // Crear la escena
-            const scene = new BABYLON.Scene(engine);
-            // Crear una cámara
-            const camera = setupCamera({ scene, canvas: canvasRef.current });
-            // Crear una luz
-            const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+            const canvas = canvasRef.current;
+            const engine = new BABYLON.Engine(canvas, true);
+            const scene = setupScene({ engine });
+            const camera = setupCamera({ scene, canvas });
+
+            const light = new BABYLON.HemisphericLight(
+                "light1",
+                new BABYLON.Vector3(1, 0, 0),
+                scene
+            );
+
             light.intensity = 0.7;
+            let advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("GUI", true, scene);
+            try {
+                advancedTexture.parseContent(uiConfig);
+
+                advancedTexture.useSmallestIdeal = true; PotenciaGlobal
+                advancedTexture.renderScale = 1.0;
+            } catch (err) {
+                console.log(err)
+                console.log(uiConfig)
+            }
 
 
             let celdaAEM
 
-            loadCeldaModel(scene, "./models/celda_aem_explosionada/celda_aem_explosionada.gltf").then((loadedCelda) => {
-                celdaAEM = loadedCelda;
+            loadCeldaModel(scene, "./models/celda_aem_explosionada/celda_aem_explosionada.gltf")
+                .then((loadedCelda) => {
+                    celdaAEM = loadedCelda;
+                    /* focusCameraOnMesh({ camera, mesh: celdaAEM }); */
+                    if (celdaAEM) {
 
-                if (celdaAEM) {
+                        const manualCenter = new BABYLON.Vector3(6, -1, 0.5);
+                        camera.target = manualCenter
 
-                    const manualCenter = new BABYLON.Vector3(6, -1, 0.5);
-                    camera.target = manualCenter
+                        partesCelda.forEach((pCelda) => {
+                            const meshParteCelda = scene.getMeshByName(pCelda.nameMesh)
 
-                    const advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+                            createIndicator(scene, canvas, meshParteCelda, pCelda)
+                        })
 
-                    // Crear un contenedor 3D para el texto (panel)
-                    const panel = new GUI.Rectangle();
-                    panel.width = "200px";
-                    panel.height = "100px";
-                    panel.cornerRadius = 20;
-                    panel.color = "white";
-                    panel.thickness = 2;
-                    panel.background = "rgba(0, 0, 0, 0.7)";
-                    advancedTexture.addControl(panel);
+                        const btnHideInfo = advancedTexture.getControlByName('btnHideInfo')
+                        const btnHideInfoElement = document.getElementById('btnHideInfo')
 
-                    // Crear el texto
-                    const text = new GUI.TextBlock();
-                    text.text = "Celda AEMIOS";
-                    text.color = "white";
-                    text.fontSize = 20;
-                    panel.addControl(text);
+                        btnHideInfo.onPointerClickObservable.add(() => {
+                            scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
+                        })
 
-                    // Posicionar el panel cerca del modelo
-                    // Esto posicionará el panel cerca del modelo en la pantalla
-                    panel.linkWithMesh(celdaAEM);
-                    panel.linkOffsetX = 200;  // Ajuste horizontal
-                    panel.linkOffsetY = -100; // Ajuste vertical
+                        btnHideInfoElement && btnHideInfoElement.addEventListener('click', (e) => {
+                            e.preventDefault()
+                            scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
+                        })
 
-                    // Configuración base para el tamaño adaptativo
-                    const baseFontSize = 20;
-                    const baseDistance = 8; // La distancia inicial de la cámara
-                    const baseWidth = 200;
-                    const baseHeight = 100;
+                        BombaCatodo({ scene, celdaAEM, canvas, advancedTexture });
+                        BombaAnodo({ scene, celdaAEM, canvas, advancedTexture });
+                        Termopar({ scene, celdaAEM, advancedTexture });
+                        PotenciaGlobal({ scene, celdaAEM, advancedTexture });
+                        Controladora({ scene, canvas, advancedTexture });
 
-                    const labels = [
-                        createLabel("basic", "Celda AEMIOS", "low"),
-                        createLabel("detailed", "Celda AEMIOS\nModelo: XR-5\nEstado: Activo", "medium"),
-                        createLabel("fullDetail", "Celda AEMIOS\nModelo: XR-5\nEstado: Activo\nTemp: 24°C\nPotencia: 100%", "high")
-                    ];
-
-                    // Registrar una función para actualizar el tamaño según el zoom
-                    scene.registerBeforeRender(() => {
-                        // Calcular el factor de escala basado en la distancia actual
-                        const currentDistance = camera.radius;
-                        const zoomRatio = baseDistance / currentDistance;
-
-                        // Limitar el factor de escala para evitar tamaños extremos
-                        const scaleFactor = Math.max(0.5, Math.min(zoomRatio, 2.5));
-
-                        // Aplicar escala al texto y panel
-                        text.fontSize = baseFontSize * scaleFactor;
-                        panel.width = baseWidth * scaleFactor + "px";
-                        panel.height = baseHeight * scaleFactor + "px";
-
-                        // Opcional: ajustar la posición del panel según el zoom
-                        panel.linkOffsetX = 200 * scaleFactor;
-                        panel.linkOffsetY = -100 * scaleFactor;
-
-                        const distance = camera.radius;
-
-                        // Mostrar etiqueta apropiada según distancia
-                        labels.forEach(label => {
-                            if (label.detail === "low" && distance > 15) {
-                                label.panel.isVisible = true;
-                            } else if (label.detail === "medium" && distance > 8 && distance <= 15) {
-                                label.panel.isVisible = true;
-                            } else if (label.detail === "high" && distance <= 8) {
-                                label.panel.isVisible = true;
-                            } else {
-                                label.panel.isVisible = false;
-                            }
-                        });
-                    });
+                    }
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
 
 
-                }
-            });
-
-
-            /* const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI"); */
-
-            scene.debugLayer.show();
-            /* BABYLON.AppendSceneAsync("/celda_aem_ensamblada/celda_aem_ensamblada.gltf", scene); */
-
-
-            /* const btn = BABYLON.GUI.Button.CreateSimpleButton("but", "Click Me"); */
+            /* scene.debugLayer.show(); */
 
             // Renderizar la escena
             engine.runRenderLoop(() => {
@@ -137,9 +230,102 @@ const BabylonScene = () => {
                 engine.dispose();
             };
         }
-    }, []);
+    }, [uiConfig]);
 
-    return <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />;
+    return <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+        <div className='m-panel'>
+            <h3 className='m-panel--title'>Celda AEM</h3>
+            <div className='m-panel__content'>
+                <section className='m-panel__section'>
+                    <div className='flex-between'>
+                        <h4 className='m-panel__section--title'>Bomba cátodo</h4>
+                        <label className="switch">
+                            <input type="checkbox" id='switchCatodo' />
+                            <span className="slider round"></span>
+                        </label>
+                    </div>
+                    <div className='m-panel__data'>
+                        <div className='flex-between'>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
+                        </div>
+                        <div className='flex-between'>
+                            <div>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data' id='caudalCatodo'><strong>Caudal:</strong> <span>5</span> W</p>
+                            </div>
+
+                            <div className='flex-between'>
+                                <input type='range' className='m-panel__input m-panel__input-range' min={1} max={100} id='sliderCatodo' />
+                                <input type='number' className='m-panel__input m-panel__input-number' id='inputCatodo' />
+                            </div>
+                        </div>
+
+
+
+                    </div>
+                </section>
+                <section className='m-panel__section'>
+                    <div className='flex-between'>
+                        <h4 className='m-panel__section--title'>Bomba ánodo</h4>
+                        <label className="switch">
+                            <input type="checkbox" id='switchAnodo' />
+                            <span className="slider round"></span>
+                        </label>
+                    </div>
+                    <div className='m-panel__data'>
+                        <div className='flex-between'>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
+                        </div>
+                        <div className='flex-between'>
+                            <div>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data' id='caudalAnodo'><strong>Caudal:</strong> <span>5</span> W</p>
+                            </div>
+
+                            <div className='flex-between'>
+                                <input type='range' className='m-panel__input m-panel__input-range' min={1} max={100} id='sliderAnodo' />
+                                <input type='number' className='m-panel__input m-panel__input-number' id='inputAnodo' />
+                            </div>
+                        </div>
+
+
+
+                    </div>
+                </section>
+                <section className='m-panel__section'>
+                    <div className='flex-between'>
+                        <h4 className='m-panel__section--title'>Termopar</h4>
+                    </div>
+                    <div className='m-panel__data'>
+                        <div className='flex-between'>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
+                        </div>
+                        <div className='flex-between'>
+                            <div className='flex-'>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data'><strong>Caudal:</strong> <span>5</span> W</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section className='m-panel__section'>
+                    <div className='flex-between'>
+                        <h4 className='m-panel__section--title'>Controladora</h4>
+                        <label className="switch">
+                            <input type="checkbox" id='switchControladora' />
+                            <span className="slider round"></span>
+                        </label>
+                    </div>
+                </section>
+            </div>
+            <button className='m-panel__btn' id='btnHideInfo'>Ocultar info</button>
+        </div>
+    </div>;
 };
 
 export default BabylonScene;
+

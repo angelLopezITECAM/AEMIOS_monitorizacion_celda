@@ -1,27 +1,52 @@
+import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
-import { AdvancedDynamicTexture } from "@babylonjs/gui";
-export function createLabel({ name, textContent, detailLevel, advancedTexture, targetMesh }) {
-    const labelPanel = new GUI.Rectangle(name + "Panel");
-    labelPanel.width = "200px";
-    labelPanel.height = "100px";
-    labelPanel.cornerRadius = 20;
-    labelPanel.color = "white";
-    labelPanel.thickness = 2;
-    labelPanel.background = "rgba(0, 0, 0, 0.7)";
-    advancedTexture.addControl(labelPanel);
 
-    const labelText = new GUI.TextBlock(name + "Text");
-    labelText.text = textContent;
-    labelText.color = "white";
-    labelText.fontSize = 20;
-    labelPanel.addControl(labelText);
+export const createLabel = (scene, mesh, text, options = {}) => {
+    // Valores predeterminados
+    const {
+        fontSize = 48,
+        color = "black",
+        backgroundColor = "white",
+        padding = 0.5,
+        x = 0,
+        y = 0,
+        z = 0,
+        width = "200px",
+        height = "100px"
+    } = options;
 
-    // Vincular con el mesh solo si se proporcionó uno
-    if (targetMesh) {
-        labelPanel.linkWithMesh(targetMesh);
-        labelPanel.linkOffsetX = 200;
-        labelPanel.linkOffsetY = -100;
-    }
+    // Crear un plano para la etiqueta
+    const plane = BABYLON.MeshBuilder.CreatePlane("labelPlane", { size: 0.5 }, scene);
+    plane.position.set(x, y, z)
 
-    return { panel: labelPanel, text: labelText, detail: detailLevel };
-}
+    const advancedTexture = GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+
+    advancedTexture.useInvalidateRectOptimization = false;
+
+    // Contenedor principal que se ajustará automáticamente
+    const rect = new GUI.Rectangle();
+    rect.cornerRadius = 60;
+    rect.background = backgroundColor;
+    rect.alpha = 0.8;
+    rect.thickness = 0;
+    rect.width = width;
+    rect.height = height;
+    advancedTexture.addControl(rect);
+
+    // Crear el texto
+    const textBlock = new GUI.TextBlock();
+    textBlock.text = text;
+    textBlock.color = color;
+    textBlock.fontSize = fontSize;
+    textBlock.paddingTop = padding;
+    rect.addControl(textBlock);
+
+    rect.adaptWidthToChildren = true;
+    rect.adaptHeightToChildren = true;
+
+    // Hacer que la etiqueta siempre mire a la cámara
+    plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+
+    return { plane, textBlock, rect, advancedTexture };
+};

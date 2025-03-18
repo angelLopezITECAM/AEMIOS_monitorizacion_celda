@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
+import useDebounce from '@/hooks/useDebounce';
 
 export function addNavigationControls(scene, camera, advancedTexture) {
     const panel = new GUI.StackPanel();
@@ -34,3 +35,23 @@ export function addNavigationControls(scene, camera, advancedTexture) {
 
     return panel;
 }
+
+export const handleInput = (value, slider, label) => {
+    const newValue = value.text
+    slider.value = newValue
+    label.text = `Caudal: ${newValue} l/h`
+}
+
+export const processChangeInput = useDebounce((value, slider, label) => {
+    handleInput(value, slider, label)
+}, 250)
+
+export const handleSlider = (value, input, label) => {
+    const newValue = value.toFixed(0)
+    input.text = value.toFixed(0)
+    label.text = `Caudal: ${newValue} l/h`
+}
+
+export const processChangeSlider = useDebounce((value, input, label) => {
+    handleSlider(value, input, label)
+}, 250)
