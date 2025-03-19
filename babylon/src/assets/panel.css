@@ -11,6 +11,8 @@
     width: 18vw;
     background-color: white;
     border: 1px solid black;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(240 5.9% 90%) transparent;
 
     &--title {
         font-size: 1.4rem;
