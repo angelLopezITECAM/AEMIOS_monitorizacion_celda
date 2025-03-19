@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
     container_name: frontend_aemios_mc_01
+    restart: unless-stopped
     ports:
       - "3002:3002"
     volumes:
@@ -21,6 +22,7 @@ services:
       context: .
       dockerfile: docker/babylon.Dockerfile
     container_name: babylon_aemios_mc_01
+    restart: unless-stopped
     ports:
       - "3003:3003"
     volumes:
