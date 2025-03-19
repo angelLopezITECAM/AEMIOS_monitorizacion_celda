@@ -1,7 +1,11 @@
+:root {
+    font-family: Montserrat, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
 .m-panel {
     position: absolute;
     top: 20px;
-    left: 20px;
+    right: 20px;
     color: black;
     padding: 1.5rem;
     border-radius: 32px;
@@ -13,6 +17,9 @@
     border: 1px solid black;
     scrollbar-width: thin;
     scrollbar-color: hsl(240 5.9% 90%) transparent;
+    border: 0;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+    transition: all .3s;
 
     &--title {
         font-size: 1.4rem;
@@ -35,7 +42,7 @@
 
     &__input {
         border-radius: 5px;
-        border: 1px solid black;
+        border: 1px solid hsl(240 5.9% 90%);
 
         &-number {
             width: 32px;
@@ -57,6 +64,7 @@
         background-color: #0B1833;
         color: #ffffff;
         transition: all .3s;
+        font-family: Montserrat, system-ui, Avenir, Helvetica, Arial, sans-serif;
 
         &:hover {
             background-color: #0B1833;
@@ -148,4 +156,12 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
     -moz-appearance: textfield;
 
+}
+
+@font-face {
+    font-family: 'Montserrat';
+    src: url('/fonts/Montserrat[wght].woff2') format('woff2');
+    font-weight: 100 900;
+
+    font-style: normal;
 }

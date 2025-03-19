@@ -1,4 +1,4 @@
-import { Sparkle, FolderKanban, LayoutPanelLeft } from "lucide-react"
+import { Home, FolderKanban, LayoutPanelLeft } from "lucide-react"
 
 import {
     Sidebar,
@@ -12,6 +12,11 @@ import { NavMain } from "./sidebar/nav-main";
 // Menu items.
 const data = {
     navMain: [
+        {
+            title: "Inicio",
+            url: "/",
+            icon: Home,
+        },
         {
             title: "Dashboards",
             url: "#",
@@ -33,11 +38,7 @@ const data = {
             url: "/panel-control",
             icon: LayoutPanelLeft,
         },
-        {
-            title: "Gemelo digital",
-            url: "/gemelo",
-            icon: Sparkle,
-        },
+
     ],
 
 }

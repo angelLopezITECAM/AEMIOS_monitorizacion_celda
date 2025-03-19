@@ -6,6 +6,7 @@ export function setupScene({ engine }) {
 
     //Configuración escena
     scene.clearColor = BABYLON.Color3.FromHexString("#f0f9ff");
+    /* new BABYLON.AxesViewer(scene); */
     /* scene.clearColor = BABYLON.Color3.FromHexString("#f0f9ff"); */
     /* scene.ambientColor = new BABYLON.Color3(1, 0, 0); */
 

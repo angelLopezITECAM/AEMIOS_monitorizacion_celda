@@ -17,10 +17,9 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={<DashboardBombas />} />
+          <Route path="/" element={<DashboardGemelo />} />
           <Route path="/dashboard/bombas" element={<DashboardBombas />} />
           <Route path="/dashboard/termopar" element={<DashboardTermopar />} />
-          <Route path="/gemelo" element={<DashboardGemelo />} />
           <Route path="/panel-control" element={<ControlApp />} />
           {/* <Route path="/dashboard/anodo" element={<DashboardAnodo />} />
           <Route path="/dashboard/catodo" element={<DashboardCatodo />} />

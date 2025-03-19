@@ -57,6 +57,8 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
         })
     }
 
+
+
     canvas.addEventListener('pointerdown', () => {
         const pickResult = scene.pick(scene.pointerX, scene.pointerY);
 

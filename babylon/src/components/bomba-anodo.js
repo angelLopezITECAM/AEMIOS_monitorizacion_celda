@@ -19,7 +19,7 @@ export function BombaAnodo({ scene, celdaAEM, canvas }) {
     const waterSystem = createWater(scene, {
         x: 0,
         y: 0,
-        z: 2.5,
+        z: 1.35,
         direction: "leftToRight",
         caudal: initialCaudal,
         name: "waterMaterialAnodo",

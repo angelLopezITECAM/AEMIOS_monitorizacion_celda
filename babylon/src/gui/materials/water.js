@@ -62,8 +62,6 @@ export function createWater(scene, options = {}) {
 
     if (direction === "leftToRight") {
         switchCylinder.rotation.z = -Math.PI / 2;
-        emitter.direction1 = new BABYLON.Vector3(1, 0, 0);
-        emitter.direction2 = new BABYLON.Vector3(1, 0, 0);
     }
 
     particleSystem.emitter = switchCylinder;
