@@ -12,7 +12,7 @@ export function DashboardGemelo() {
 
         <div className="max-h-[85vh] h-[85vh] m-2">
 
-            <iframe src="http://localhost:3003/" className="w-full h-full" />
+            <iframe src="http://192.168.15.109:3003/" className="w-full h-full" />
 
 
 
