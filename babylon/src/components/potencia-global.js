@@ -2,7 +2,7 @@
 import { createLabel } from '@/gui/label';
 import { createImage } from '@/gui/image';
 
-export function PotenciaGlobal({ scene, celdaAEM, advancedTexture }) {
+export function PotenciaGlobal({ scene, celdaAEM }) {
 
     /*     createLabel(scene, celdaAEM, "100 W", {
             offsetY: 1,

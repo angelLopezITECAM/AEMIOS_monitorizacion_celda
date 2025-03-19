@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
+    container_name: frontend_aemios_mc_01
     ports:
       - "3002:3002"
     volumes:
@@ -19,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: docker/babylon.Dockerfile
+    container_name: babylon_aemios_mc_01
     ports:
       - "3003:3003"
     volumes:

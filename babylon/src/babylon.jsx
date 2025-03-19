@@ -29,7 +29,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Separador teflon GDL-1",
-                    "Temperatura": "23 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
                 status: "warning"
             }
@@ -41,7 +41,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Separador teflon GDL-2",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "warning"
@@ -53,7 +53,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Separador teflon GDL-2",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "success"
@@ -65,7 +65,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Separador teflon aislante 1",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "warning"
@@ -77,7 +77,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Separador teflon aislante 2",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "warning"
@@ -89,7 +89,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Placa bipolar 1",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "warning"
@@ -101,7 +101,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Placa bipolar 2",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 }
             },
             status: "success"
@@ -113,7 +113,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Placa final 1-1",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 }
             },
             status: "success"
@@ -125,7 +125,7 @@ const partesCelda = [
             card: {
                 data: {
                     "Parte": "Placa final 1-2",
-                    "Temperatura": "67 ºC"
+                    "Temperatura": `${Math.floor(Math.random() * 50)} ºC`
                 },
             },
             status: "danger"
@@ -158,16 +158,6 @@ const BabylonScene = () => {
             );
 
             light.intensity = 0.7;
-            let advancedTexture = GUI.AdvancedDynamicTexture.CreateFullscreenUI("GUI", true, scene);
-            try {
-                advancedTexture.parseContent(uiConfig);
-
-                advancedTexture.useSmallestIdeal = true; PotenciaGlobal
-                advancedTexture.renderScale = 1.0;
-            } catch (err) {
-                console.log(err)
-                console.log(uiConfig)
-            }
 
 
             let celdaAEM
@@ -187,23 +177,20 @@ const BabylonScene = () => {
                             createIndicator(scene, canvas, meshParteCelda, pCelda)
                         })
 
-                        const btnHideInfo = advancedTexture.getControlByName('btnHideInfo')
                         const btnHideInfoElement = document.getElementById('btnHideInfo')
 
-                        btnHideInfo.onPointerClickObservable.add(() => {
-                            scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
-                        })
+
 
                         btnHideInfoElement && btnHideInfoElement.addEventListener('click', (e) => {
                             e.preventDefault()
                             scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
                         })
 
-                        BombaCatodo({ scene, celdaAEM, canvas, advancedTexture });
-                        BombaAnodo({ scene, celdaAEM, canvas, advancedTexture });
-                        Termopar({ scene, celdaAEM, advancedTexture });
-                        PotenciaGlobal({ scene, celdaAEM, advancedTexture });
-                        Controladora({ scene, canvas, advancedTexture });
+                        BombaCatodo({ scene, celdaAEM, canvas });
+                        BombaAnodo({ scene, celdaAEM, canvas });
+                        Termopar({ scene, celdaAEM });
+                        PotenciaGlobal({ scene, celdaAEM });
+                        Controladora({ scene, canvas });
 
                     }
                 })
@@ -232,8 +219,8 @@ const BabylonScene = () => {
         }
     }, [uiConfig]);
 
-    return <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-        <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+    return <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <canvas ref={canvasRef} style={{ width: '100vw', height: '100vh' }} />
         <div className='m-panel'>
             <h3 className='m-panel--title'>Celda AEM</h3>
             <div className='m-panel__content'>
@@ -247,13 +234,13 @@ const BabylonScene = () => {
                     </div>
                     <div className='m-panel__data'>
                         <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.3</span> kWh</p>
                             <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
                         </div>
                         <div className='flex-between'>
                             <div>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
-                                <p className='m-panel__data' id='caudalCatodo'><strong>Caudal:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>20</span> V</p>
+                                <p className='m-panel__data' id='caudalCatodo'><strong>Caudal:</strong> <span>5</span> l/h</p>
                             </div>
 
                             <div className='flex-between'>
@@ -276,13 +263,13 @@ const BabylonScene = () => {
                     </div>
                     <div className='m-panel__data'>
                         <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>1.0</span> kWh</p>
                             <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
                         </div>
                         <div className='flex-between'>
                             <div>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
-                                <p className='m-panel__data' id='caudalAnodo'><strong>Caudal:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>25</span> V</p>
+                                <p className='m-panel__data' id='caudalAnodo'><strong>Caudal:</strong> <span>10</span> l/h</p>
                             </div>
 
                             <div className='flex-between'>
@@ -301,13 +288,13 @@ const BabylonScene = () => {
                     </div>
                     <div className='m-panel__data'>
                         <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.0</span> kW</p>
+                            <p className='m-panel__data'><strong>Consumo:</strong> <span>1.2</span> kWh</p>
                             <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
                         </div>
                         <div className='flex-between'>
                             <div className='flex-'>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>5</span> W</p>
-                                <p className='m-panel__data'><strong>Caudal:</strong> <span>5</span> W</p>
+                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>35</span> V</p>
+                                <p className='m-panel__data'><strong>Caudal:</strong> <span>5</span> l/h</p>
                             </div>
                         </div>
                     </div>

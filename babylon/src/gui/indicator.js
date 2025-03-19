@@ -30,14 +30,12 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
             color = BABYLON.Color3.FromHexString("#016630");
     }
 
-    const sphere = BABYLON.MeshBuilder.CreateSphere("indicadorEsfera", {
+    const sphereName = `indicator_sphere_${meshPrincipal.uniqueId || Math.random().toString(36).substr(2, 9)}`;
+    const sphere = BABYLON.MeshBuilder.CreateSphere(sphereName, {
         diameter: 0.08,
         segments: 8
     }, scene)
 
-    const boundingInfo = meshPrincipal.getBoundingInfo();
-    const meshHeight = boundingInfo.boundingBox.extendSize.y * 2;
-    /* sphere.position.y = meshHeight / 2 + offsetY; */
     sphere.position.y = 0.01;
     sphere.parent = meshPrincipal;
 
@@ -49,9 +47,11 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
 
     sphere.scaling.setAll(size)
 
+
     if (pulseAnimation) {
         let scale = 1;
         scene.registerBeforeRender(() => {
+
             scale = 0.9 + Math.sin(Date.now() * 0.005) * 0.1;
             sphere.scaling.setAll(size * scale);
         })
@@ -63,8 +63,6 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
         if (pickResult.hit && pickResult.pickedMesh === sphere) {
             scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
             createCard(scene, meshPrincipal, card)
-
-
         }
     })
 

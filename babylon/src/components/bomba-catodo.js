@@ -5,23 +5,15 @@ import { createSwitch } from '@/gui/switch';
 import { createWater } from '@/gui/materials/water';
 import { processChangeInput, processChangeSlider, handleInput, handleSlider } from '@/gui/controls'
 
-export function BombaCatodo({ scene, celdaAEM, canvas, advancedTexture }) {
+export function BombaCatodo({ scene, celdaAEM, canvas }) {
 
     let initialCaudal = 17;
+    const switchCatodo = document.getElementById('switchCatodo')
+    const sliderCatodoElement = document.getElementById('sliderCatodo')
+    const inputCatodoElement = document.getElementById('inputCatodo')
+    const caudalCatodo = document.getElementById('caudalCatodo')
 
-    const checkboxCatodo = advancedTexture.getControlByName('checkboxCatodo')
-    const sliderCatodo = advancedTexture.getControlByName('SliderCatodo')
-    const labelCaudalCatodo = advancedTexture.getControlByName('labelCaudalCatodo')
-    const inputCaudalCatodo = advancedTexture.getControlByName('valueCaudalCatodo')
-
-    const consumoCatodo = advancedTexture.getControlByName('labelConsumoCatodo')
-    const potenciaCatodo = advancedTexture.getControlByName('labelPotenciaCatodo')
-    const voltajeCatodo = advancedTexture.getControlByName('labelVoltajeCatodo')
-
-
-
-
-    const isActive = checkboxCatodo.isChecked;
+    const isActive = switchCatodo.checked;
 
     const waterSystem = createWater(scene, {
         x: 0,
@@ -33,31 +25,10 @@ export function BombaCatodo({ scene, celdaAEM, canvas, advancedTexture }) {
         isActive
     });
 
-    handleSlider(initialCaudal, inputCaudalCatodo, labelCaudalCatodo)
-    handleInput({ text: initialCaudal }, sliderCatodo, labelCaudalCatodo)
 
     const handleCheckbox = (isChecked) => {
         waterSystem.setFlowState(isChecked);
     }
-
-
-    sliderCatodo.onValueChangedObservable.add((value) => {
-        processChangeSlider(value, inputCaudalCatodo, labelCaudalCatodo)
-        waterSystem.setCaudal(value.toFixed(0));
-    })
-    inputCaudalCatodo.onTextChangedObservable.add((value) => {
-        processChangeInput(value, sliderCatodo, labelCaudalCatodo)
-        waterSystem.setCaudal(value.text);
-    })
-
-    checkboxCatodo.onIsCheckedChangedObservable.add(isChecked => {
-        handleCheckbox(isChecked)
-    })
-
-    const switchCatodo = document.getElementById('switchCatodo')
-    const sliderCatodoElement = document.getElementById('sliderCatodo')
-    const inputCatodoElement = document.getElementById('inputCatodo')
-    const caudalCatodo = document.getElementById('caudalCatodo')
 
     switchCatodo && switchCatodo.addEventListener('click', (e) => {
         handleCheckbox(switchCatodo.checked)
