@@ -3,12 +3,12 @@
     top: 20px;
     left: 20px;
     color: black;
-    padding: 15px;
+    padding: 1.5rem;
     border-radius: 32px;
     height: 88vh;
     max-height: 88vh;
     overflow: auto;
-    width: 18vw;
+    width: 19vw;
     background-color: white;
     border: 1px solid black;
     scrollbar-width: thin;
