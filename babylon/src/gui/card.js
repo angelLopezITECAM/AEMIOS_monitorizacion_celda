@@ -22,8 +22,8 @@ export function createCard(scene, mesh, options = {}) {
     if (mesh) {
         plane.position.set(
             0,
-            0.8,
-            1
+            1,
+            0
         )
     } else {
         plane.position.set(x, y, z)

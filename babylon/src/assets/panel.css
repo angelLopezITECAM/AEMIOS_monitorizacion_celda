@@ -5,7 +5,7 @@
 .m-panel {
     position: absolute;
     top: 20px;
-    right: 20px;
+    left: 20px;
     color: black;
     padding: 1.5rem;
     border-radius: 32px;

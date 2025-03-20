@@ -183,7 +183,7 @@ const BabylonScene = () => {
 
                     if (celdaAEM) {
                         console.log(celdaAEM)
-                        celdaAEM.position = new BABYLON.Vector3(0, 0, 0);
+                        celdaAEM.position = new BABYLON.Vector3(0, 0, -1.1);
 
                         partesCelda.forEach((pCelda) => {
                             const meshParteCelda = scene.getMeshByName(pCelda.nameMesh)
@@ -207,7 +207,7 @@ const BabylonScene = () => {
                         })
 
                         switchDetalle && switchDetalle.addEventListener('change', (e) => {
-                            e.preventDefault()
+
                             const isChecked = e.target.checked
                             const centerCelda = partesCelda.find((pCelda) => pCelda.position === 'center')
                             const fps = 60

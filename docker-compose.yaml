@@ -13,7 +13,6 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
     working_dir: /app
-    command: ["npm", "run", "dev"]
     networks:
       - aemios-network
 
@@ -31,7 +30,6 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
     working_dir: /app
-    command: ["npm", "run", "dev"]
     networks:
       - aemios-network
 

@@ -15,11 +15,12 @@ export function createWater(scene, options = {}) {
         caudal = 20,
         direction = "rightToLeft",
         name = "waterMaterial",
+        nameCilindro = "switchCylinder",
         waterColor = new BABYLON.Color3(0.1, 0.3, 0.6)
     } = options;
 
 
-    const switchCylinder = BABYLON.MeshBuilder.CreateCylinder("switchCylinder", { height: 0.05, diameter: 0.2, tessellation: 64 }, scene);
+    const switchCylinder = BABYLON.MeshBuilder.CreateCylinder(nameCilindro, { height: 0.05, diameter: 0.2, tessellation: 64 }, scene);
     switchCylinder.position = new BABYLON.Vector3(x, y, z);
     switchCylinder.rotation.z = Math.PI / 2;
     /* switchCylinder.billboardMode = BABYLON.Mesh.BILLBOARDMODE_NONE; */

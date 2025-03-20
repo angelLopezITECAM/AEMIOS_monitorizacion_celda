@@ -3,8 +3,8 @@ import * as BABYLON from '@babylonjs/core';
 export function setupCamera({ scene, canvas, targetMesh }) {
     const camera = new BABYLON.ArcRotateCamera(
         "camera1",
-        0,
-        0,
+        Math.PI,
+        Math.PI / 2,
         4,
         BABYLON.Vector3.Zero(),
         scene
