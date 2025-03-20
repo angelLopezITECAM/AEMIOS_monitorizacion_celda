@@ -282,7 +282,7 @@ const BabylonScene = () => {
                 });
 
 
-            scene.debugLayer.show();
+            /* scene.debugLayer.show(); */
 
             // Renderizar la escena
             engine.runRenderLoop(() => {
