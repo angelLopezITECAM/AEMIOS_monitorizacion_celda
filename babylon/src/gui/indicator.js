@@ -61,10 +61,11 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
 
     canvas.addEventListener('pointerdown', () => {
         const pickResult = scene.pick(scene.pointerX, scene.pointerY);
-
+        console.log(pickResult.pickedMesh.absolutePosition)
         if (pickResult.hit && pickResult.pickedMesh === sphere) {
             scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
-            createCard(scene, meshPrincipal, card)
+            scene.getMeshByName('lineCardSphere') && scene.getMeshByName('lineCardSphere').dispose()
+            createCard(scene, meshPrincipal, sphere, card)
         }
     })
 

@@ -204,6 +204,7 @@ const BabylonScene = () => {
                         btnHideInfoElement && btnHideInfoElement.addEventListener('click', (e) => {
                             e.preventDefault()
                             scene.getMeshByName('cardPlane') && scene.getMeshByName('cardPlane').dispose()
+                            scene.getMeshByName('lineCardSphere') && scene.getMeshByName('lineCardSphere').dispose()
                         })
 
                         switchDetalle && switchDetalle.addEventListener('change', (e) => {

@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 import * as GUI from '@babylonjs/gui';
 
-export function createCard(scene, mesh, options = {}) {
+export function createCard(scene, mesh, sphere, options = {}) {
 
     const {
         fontSize = 64,
@@ -18,12 +18,19 @@ export function createCard(scene, mesh, options = {}) {
     } = options;
 
     // Crear un plano para la etiqueta
+    /* console.log(sphere.absolutePosition) */
     const plane = BABYLON.MeshBuilder.CreatePlane("cardPlane", { width: 1.6, height: 1.7 }, scene);
     if (mesh) {
-        plane.position.set(
+        /* plane.position.set(
             0,
             1,
             0
+        ) */
+        plane.position.set(
+            sphere.absolutePosition.x + 0.3,
+            /* sphere.absolutePosition.y + 0.76, */
+            sphere.absolutePosition.y + 0.45,
+            sphere.absolutePosition.z
         )
     } else {
         plane.position.set(x, y, z)
@@ -34,10 +41,12 @@ export function createCard(scene, mesh, options = {}) {
     advancedTexture.useInvalidateRectOptimization = false;
     advancedTexture.hasAlpha = true;
 
+
+
     // Contenedor principal que se ajustará automáticamente
     const rect = new GUI.Rectangle();
     rect.cornerRadius = 60;
-    rect.background = backgroundColor;
+    rect.background = "#ffffffff";
     rect.alpha = 0.8;
     rect.thickness = 0;
     rect.shadowBlur = 0;
@@ -122,6 +131,20 @@ export function createCard(scene, mesh, options = {}) {
     const minScale = 0.5;    // Escala mínima
     const maxScale = 3.0;    // Escala máxima
 
+    const line = BABYLON.MeshBuilder.CreateLines("lineCardSphere",
+        {
+            points: [
+                sphere.absolutePosition,
+                new BABYLON.Vector3(
+                    plane.position.x,
+                    plane.position.y - 0.05,
+                    plane.position.z
+                ),]
+        }, scene);
+
+    line.color = new BABYLON.Color3(0.2, 0.2, 0.2);
+
+    advancedTexture.updateSamplingMode(BABYLON.Texture.NEAREST_SAMPLINGMODE);
     // Registrar función de escalado automático
     scene.registerBeforeRender(() => {
         if (camera) {
