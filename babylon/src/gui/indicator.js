@@ -8,7 +8,7 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
     const {
 
         size = 0.2,
-        offsetY = 0.5,
+        offsetY = 0.1,
         pulseAnimation = true,
         status = "success",
         card = {}
@@ -32,12 +32,27 @@ export function createIndicator(scene, canvas, meshPrincipal, pCelda = {}) {
 
     const sphereName = `indicator_sphere_${meshPrincipal.uniqueId || Math.random().toString(36).substr(2, 9)}`;
     const sphere = BABYLON.MeshBuilder.CreateSphere(sphereName, {
-        diameter: 0.08,
+        diameter: 0.35,
         segments: 8
     }, scene)
 
-    sphere.position.y = 0.01;
-    sphere.parent = meshPrincipal;
+    let originalPosition = meshPrincipal.absolutePosition;
+
+    switch (meshPrincipal.name.trim()) {
+        case "Separador teflon GDL-1":
+            sphere.position = new BABYLON.Vector3(originalPosition.x - 0.2, 0.30, originalPosition.z - 0.05)
+            break;
+        case "Separador teflon GDL-2":
+            sphere.position = new BABYLON.Vector3(originalPosition.x - 0.2, 0.30, originalPosition.z - 0.25)
+            break;
+
+        default:
+            sphere.position = originalPosition
+            break;
+    }
+
+    /* sphere.parent = meshPrincipal; */
+
 
     const material = new BABYLON.StandardMaterial("indicadorMaterial", scene);
     material.diffuseColor = color;

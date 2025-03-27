@@ -332,9 +332,6 @@ const BabylonScene = () => {
                                 <input type='number' className='m-panel__input m-panel__input-number' id='inputCatodo' />
                             </div>
                         </div>
-
-
-
                     </div>
                 </section>
                 <section className='m-panel__section'>
