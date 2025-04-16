@@ -1,0 +1,43 @@
+@baseUrl = http://localhost:8000/api
+
+### CHECK INFLUX CONNECTION
+GET {{baseUrl}}/influx/ping
+
+### CREATE NEW DATA
+POST {{baseUrl}}/influx/post 
+Content-Type: application/json
+
+{"magnitude":"amperage_tc","value":"2.1", "ud": "A"}
+
+### CREATE NEW DATA ERROR
+POST {{baseUrl}}/influx/post 
+Content-Type: application/json
+
+{"magnitude":"asdasd_tc","value":"2.1", "ud": "A"}
+
+### GET DATA FROM ONE MEASUREMENT
+GET {{baseUrl}}/influx/data/temperature_tc
+
+### GET DATA FROM ONE MEASUREMENT ERROR
+GET {{baseUrl}}/influx/data/amperagq23e_tc
+
+### MQTT DATA
+POST {{baseUrl}}/mqtt/publish
+Content-Type: application/json
+
+
+{"topic":"devices/play","message":{"element":"anodo_pump","action":"1", "ud": " "}
+}
+
+### MQTT PLAY
+POST {{baseUrl}}/mqtt/publish
+Content-Type: application/json
+
+{"topic":"devices/play","message":{"element":"relay","action":"0", "ud": " "}}
+### POKEAPI
+GET https://pokeapi.co/api/v2/berry/12
+### POKEAPI
+GET https://pokeapi.co/api/v2/item/
+
+### POKEAPI
+GET {{baseUrl}}/mqtt/stream

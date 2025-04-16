@@ -1,8 +1,20 @@
+volumes:
+  telegraf_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_config:
+    driver: local
+  mosquitto_log:
+    driver: local
+
 services:
   frontend:
     build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
+      context: frontend
+      dockerfile: Dockerfile
     container_name: frontend_aemios_mc_01
     restart: unless-stopped
     ports:
@@ -18,8 +30,8 @@ services:
 
   babylon:
     build:
-      context: .
-      dockerfile: docker/babylon.Dockerfile
+      context: babylon
+      dockerfile: Dockerfile
     container_name: babylon_aemios_mc_01
     restart: unless-stopped
     ports:
@@ -32,6 +44,52 @@ services:
     working_dir: /app
     networks:
       - aemios-network
+  
+  influxdb:
+    container_name: influxdb_aemios_mc_01
+    image: "influxdb:1.11"
+    ports:
+     - "8086:8086"
+    restart: unless-stopped 
+    volumes:
+     - "influxdb_data:/var/lib/influxdb" 
+    environment:
+     - INFLUXDB_HTTP_LOG_ENABLED=false 
+
+  telegraf:
+    container_name: telegraf_aemios_mc_01
+    build: 
+      context: telegraf
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+    volumes:
+     - "${PWD:-.}/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf"
+
+  api:
+    build:
+      context: ./api
+    container_name: api_aemios_mc_01
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+    depends_on:
+      - influxdb
+      - mqtt
+  
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: mosquitto_aemios_mc_01
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # Puerto MQTT
+      - "9001:9001"   # Puerto para la interfaz web (si se habilita)
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+    #  - ./mosquitto/data:/mosquitto/data
+    #  - ./mosquitto/log:/mosquitto/log
 
 networks:
   aemios-network:

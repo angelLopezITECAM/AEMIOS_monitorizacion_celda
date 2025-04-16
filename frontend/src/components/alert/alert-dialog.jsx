@@ -13,13 +13,25 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useMQTT } from "@/context/mqtt-context";
+import { useEffect, useState } from "react"
 
 export function AlertDialog() {
+
+    const { messages } = useMQTT();
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+        const alarmas = messages.filter((alert) => {
+            return alert.topic === "devices/alarms" && alert.process === false
+        })
+
+        if (alarmas.length > 0) {
+            setOpen(true)
+        }
+    }, [messages])
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline">Share</Button>
-            </DialogTrigger>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>¡Nueva alerta!</DialogTitle>

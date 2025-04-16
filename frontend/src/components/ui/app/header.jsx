@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Bell, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import { AlertSheet } from "../../alert/alert-sheet";
 import { AlertDialog } from '../../alert/alert-dialog';
-
+import { MQTTProvider } from "@/context/mqtt-context";
 
 
 const sampleAlerts = [
@@ -37,12 +37,12 @@ const sampleAlerts = [
     },
 ]
 
-export default function Header() {
+export function Header() {
 
     const [isSheetOpen, setIsSheetOpen] = useState(false)
 
     return (
-        <>
+        <MQTTProvider>
             <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                 <SidebarTrigger />
                 <div data-orientation="vertical" role="none" className="shrink-0 bg-border w-[1px] mr-2 h-4"></div>
@@ -60,6 +60,6 @@ export default function Header() {
                 alerts={sampleAlerts}
             />
 
-        </>
+        </MQTTProvider>
     );
 }
