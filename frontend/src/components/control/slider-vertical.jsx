@@ -9,7 +9,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 
 export function SliderVertical({ item }) {
     const { messages, isConnected, sendMessage, error: mqttError } = useMQTT();
-    const { title, defaultValue, min, max, step, id, magnitude } = item;
+    const { title, defaultValue, min, max, step, id, magnitude, idElement } = item;
 
     const [value, setValue] = useState(defaultValue);
     const [lastSentValue, setLastSentValue] = useState(defaultValue);
@@ -223,64 +223,70 @@ export function SliderVertical({ item }) {
     };
 
     return (
-        <div className="my-4 relative">
+        <>
+            <div className="my-4 relative">
 
-            <div className="flex items-center justify-between mb-4">
-                <Label
-                    htmlFor={`${title}-slider`}
-                    className={error ? "text-red-500" : ""}
-                >
-                    {title}
-                    {error && (
-                        <Badge variant="destructive" className="mr-2 my-2">
-                            {error}
-                        </Badge>
-                    )}
-                </Label>
-                <div className="relative">
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded">
-                            <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                        </div>
-                    )}
-                    <Input
-                        id={`${title}-input`}
-                        type="number"
-                        value={value}
-                        onChange={handleInputChange}
-                        className={`w-20 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
-                        min={min}
-                        max={max}
-                        step={step}
-                        disabled={isLoading || !initialValueReceived}
-                    />
-                </div>
-            </div>
+                <div className="flex items-center justify-between mb-4">
+                    <Label
+                        htmlFor={`${title}-slider`}
+                        className={error ? "text-red-500" : ""}
+                    >
+                        {title}
 
-            <div className="flex flex-col items-center">
-                <span className="text-sm text-muted-foreground mb-2">{max}</span>
-                <div className="relative h-40">
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <div className="bg-background/50 p-2 rounded-full">
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </Label>
+                    <div className="relative">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded">
+                                <Loader2 className="h-3 w-3 animate-spin text-primary" />
                             </div>
-                        </div>
-                    )}
-                    <Slider
-                        id={`${title}-slider`}
-                        min={min}
-                        max={max}
-                        step={step}
-                        value={[value]}
-                        onValueChange={handleSliderChange}
-                        orientation="vertical"
-                        className={`h-40 ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
-                        disabled={isLoading || !initialValueReceived}
-                    />
+                        )}
+                        <Input
+                            id={`${title}-input`}
+                            type="number"
+                            value={value}
+                            onChange={handleInputChange}
+                            className={`w-20 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            min={min}
+                            max={max}
+                            step={step}
+                            disabled={isLoading || !initialValueReceived}
+                        />
+                    </div>
                 </div>
-                <span className="text-sm text-muted-foreground mt-2">{min}</span>
+
+                <div className="flex flex-col items-center">
+                    <span className="text-sm text-muted-foreground mb-2">{max}</span>
+                    <div className="relative h-40">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                                <div className="bg-background/50 p-2 rounded-full">
+                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                </div>
+                            </div>
+                        )}
+                        <Slider
+                            id={`${title}-slider`}
+                            min={min}
+                            max={max}
+                            step={step}
+                            value={[value]}
+                            onValueChange={handleSliderChange}
+                            orientation="vertical"
+                            className={`h-40 ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            disabled={isLoading || !initialValueReceived}
+                        />
+                    </div>
+                    <span className="text-sm text-muted-foreground mt-2">{min}</span>
+                </div>
             </div>
-        </div>
+
+            {
+                error && (
+                    <Badge variant="destructive" className="mr-2 my-2">
+                        {error}
+                    </Badge>
+                )
+            }
+        </>
     );
 }

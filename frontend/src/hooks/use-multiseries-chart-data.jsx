@@ -32,10 +32,19 @@ export function useMultiSeriesChartData(magnitudes) {
     useEffect(() => {
         const hasErrors = swrResponses.some(r => r.error);
         const isLoading = swrResponses.some(r => r.isLoading);
+
         if (isLoading || hasErrors) {
-            setChartData(prev => ({ ...prev, isLoading, error: hasErrors }));
+            setChartData(prev => {
+                if (prev.isLoading === isLoading && prev.error === hasErrors) {
+                    return prev;
+                }
+                return { ...prev, isLoading, error: hasErrors };
+            });
             return;
         }
+
+        const allDataAvailable = swrResponses.every(res => res.data?.results);
+        if (!allDataAvailable) return;
 
         const seriesData = swrResponses.map((res) =>
             parseDataInflux(res.data.results)
@@ -48,8 +57,14 @@ export function useMultiSeriesChartData(magnitudes) {
             })
         );
 
-        setChartData({ seriesData, timeLabels, isLoading: false, error: null });
-    }, [swrResponses]);
+        setChartData(prev => {
+            if (JSON.stringify(prev.seriesData) === JSON.stringify(seriesData) &&
+                JSON.stringify(prev.timeLabels) === JSON.stringify(timeLabels)) {
+                return prev;
+            }
+            return { seriesData, timeLabels, isLoading: false, error: null };
+        });
+    }, [swrResponses, timeFilter]);
 
     return chartData;
 }

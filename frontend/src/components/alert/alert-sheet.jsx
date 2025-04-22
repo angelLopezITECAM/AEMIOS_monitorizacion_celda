@@ -59,6 +59,7 @@ export function AlertSheet({ open, onOpenChange }) {
             return alert.topic === "devices/alarms" && alert.process === false
         })
 
+
         const newAlertas = []
         alertasFiltradas?.map((alert) => {
             const newAlert = {

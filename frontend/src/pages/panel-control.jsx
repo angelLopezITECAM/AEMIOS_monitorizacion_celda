@@ -10,42 +10,62 @@ import { MQTTProvider, useMQTT } from "@/context/mqtt-context";
 function ControlPanel() {
     const { isConnected, sendMessage } = useMQTT();
     const [initialMessageSent, setInitialMessageSent] = useState(false);
+    const [error, setError] = useState(null);
 
     // Efecto para enviar mensaje inicial cuando la conexión está lista
     useEffect(() => {
-        // Solo enviar el mensaje cuando estamos conectados y no se ha enviado antes
-        if (isConnected && !initialMessageSent) {
-            console.log("Enviando mensaje inicial al entrar en Panel de Control");
+        const sendInitialMessage = async () => {
+            if (isConnected && !initialMessageSent) {
+                console.log("=== Intentando enviar mensaje inicial ===");
+                try {
+                    const initialMessage = {
+                        element: "state",
+                        action: "0",
+                        ud: " "
+                    };
 
-            // Mensaje para solicitar el estado actual de los dispositivos
-            const initialMessage = {
-                element: "state",
-                action: "0",
-                ud: " "
-            };
+                    console.log("Enviando mensaje inicial:", initialMessage);
+                    const result = await sendMessage("devices/play", initialMessage);
+                    console.log("Resultado del envío:", result);
 
-            // Enviar a un topic específico para solicitar estado
-            sendMessage("devices/play", initialMessage);
+                    if (result) {
+                        console.log("Mensaje inicial enviado con éxito");
+                        setInitialMessageSent(true);
+                        setError(null);
+                    }
+                } catch (err) {
+                    console.error("Error al enviar mensaje inicial:", err);
+                    setError(err.message);
+                    // Reintentar en 2 segundos
+                    setTimeout(() => {
+                        setInitialMessageSent(false);
+                    }, 2000);
+                }
+            }
+        };
 
-            // Marcar como enviado para no repetir
-            setInitialMessageSent(true);
-        }
+        sendInitialMessage();
     }, [isConnected, sendMessage, initialMessageSent]);
 
     return (
         <div className="max-w-lg mx-auto">
             <div className="flex items-center justify-between my-2 ">
                 <h1 className="text-2xl font-bold tracking-tight">Panel de control</h1>
-                {!isConnected && (
-                    <p className="text-red-500 text-sm">Conectando al sistema...</p>
-                )}
+                <div className="flex flex-col items-end">
+                    {!isConnected && (
+                        <p className="text-red-500 text-sm">Conectando al sistema...</p>
+                    )}
+                    {error && (
+                        <p className="text-red-500 text-sm">{error}</p>
+                    )}
+                </div>
             </div>
 
             <div className="">
                 {
                     itemsSwitch.map((item) => (
                         <SwitchApp
-                            key={item.id} // Usar id como key en lugar de useId
+                            key={item.id}
                             item={item}
                         />
                     ))
@@ -55,7 +75,7 @@ function ControlPanel() {
                     {
                         itemsSlider.map((item) => (
                             <SliderVertical
-                                key={item.id} // Usar id como key en lugar de useId
+                                key={item.id}
                                 item={item}
                             />
                         ))
@@ -94,18 +114,21 @@ const itemsSwitch = [
         title: "Bomba cátodo",
         defaultValue: false,
         magnitude: "status_cathode_pump",
+        slider: "status_speed_cat_pump",
     },
     {
         id: "anode_pump",
         title: "Bomba ánodo",
         defaultValue: false,
         magnitude: "status_anode_pump",
+        slider: "status_speed_an_pump",
     },
     {
         id: "relay",
         title: "Controladora",
         defaultValue: false,
         magnitude: "status_relay",
+        slider: null,
     },
 ];
 

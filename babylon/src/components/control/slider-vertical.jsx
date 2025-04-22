@@ -1,14 +1,16 @@
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { useState, useEffect, useCallback, useRef } from "react"
-import { useDebounce } from "@/hooks/use-debounce"
-import { useMQTT } from "@/context/mqtt-context"
-import { Loader2, MenuSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Loader2, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from "react"
+import { useMQTT } from "@/context/mqtt-context"
+import useDebounce from "@/hooks/useDebounce"
 
-export function SwitchApp({ item }) {
+export function SliderVertical({ item }) {
     const { messages, isConnected, sendMessage, error: mqttError } = useMQTT();
-    const { title, defaultValue, id, magnitude, slider } = item;
+    const { title, defaultValue, min, max, step, id, magnitude, idElement } = item;
+
     const [value, setValue] = useState(defaultValue);
     const [lastSentValue, setLastSentValue] = useState(defaultValue);
     const [isLoading, setIsLoading] = useState(true); // Iniciar como cargando
@@ -20,56 +22,31 @@ export function SwitchApp({ item }) {
     // Agregar una ref para el valor que está pendiente de confirmación
     const pendingValueRef = useRef(null);
     // Tiempo de espera para la confirmación en ms
-    const CONFIRMATION_TIMEOUT = 5000;
+    const CONFIRMATION_TIMEOUT = 10000;
 
     // Referencia para rastrear mensajes ya procesados
     const processedMessagesRef = useRef(new Set());
 
-    // Función para obtener el valor booleano desde diferentes formatos
+    const timeDebounce = 1000;
+
+    // Función para obtener el valor numérico desde diferentes formatos
     const getValue = (rawValue) => {
-        if (typeof rawValue === 'boolean') return rawValue;
+        if (typeof rawValue === 'number') return rawValue;
         if (typeof rawValue === 'string') {
-            const normalized = rawValue.toLowerCase().trim();
-            return normalized === '1' || normalized === 'true' || normalized === 'on';
+            const numValue = parseFloat(rawValue);
+            return isNaN(numValue) ? defaultValue : numValue;
         }
-        if (typeof rawValue === 'number') return rawValue === 1;
-        return false;
+        return defaultValue;
     };
 
-    // Función para verificar si hay un mensaje de slider con valor 0
-    const checkSliderValue = useCallback(() => {
-        if (!messages || messages.length === 0) return;
-
-        // Buscar el último mensaje del slider correspondiente
-        const sliderMessages = messages.filter(msg =>
-            msg?.payload?.magnitude === slider &&
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
-
-        if (sliderMessages.length > 0) {
-            const lastSliderMessage = sliderMessages[sliderMessages.length - 1];
-            const sliderValue = parseFloat(lastSliderMessage.payload.value);
-
-            // Si el slider está en 0, desactivar el switch
-            if (sliderValue === 0 && value) {
-                console.log(`Slider ${id} está en 0, desactivando switch`);
-                setValue(false);
-                setLastSentValue(false);
-            }
-        }
-    }, [messages, id, value]);
-
+    // Procesar mensajes entrantes
     useEffect(() => {
-        checkSliderValue();
-    }, [checkSliderValue]);
-
-    useEffect(() => {
-        if (!messages || messages.length === 0) return;
-
         console.log(messages)
-        // Filtrar solo mensajes relevantes para este interruptor y no procesados
+        if (!messages || messages.length === 0) return;
+
+        // Filtrar solo mensajes relevantes para este slider y no procesados
         const relevantMessages = messages.filter(msg =>
-            (msg?.payload?.magnitude === magnitude) && // Comprobar si el mensaje es para este elemento
+            (msg?.payload?.magnitude === magnitude || msg?.payload?.magnitude === id) && // Comprobar si el mensaje es para este elemento
             !processedMessagesRef.current.has(msg.timestamp)
         );
 
@@ -82,13 +59,18 @@ export function SwitchApp({ item }) {
 
             if (msg.payload && msg.payload.value !== undefined) {
                 const newValue = getValue(msg.payload.value);
-                console.log(`Actualizando switch ${magnitude} con valor:`, newValue);
+
+                // Asegurar que el valor está dentro de los límites
+                const boundedValue = Math.max(min, Math.min(max, newValue));
+
+                console.log(`Actualizando slider ${id} con valor:`, boundedValue);
 
                 // Comprobar si este mensaje es una confirmación de una acción pendiente
+
                 if (pendingValueRef.current !== null) {
                     // Si el valor recibido es igual al pendiente, confirmamos la acción
-                    if (newValue === pendingValueRef.current) {
-                        console.log(`Confirmación recibida para switch ${magnitude}`);
+                    if (Math.abs(boundedValue - pendingValueRef.current) < 0.001) {
+                        console.log(`Confirmación recibida para slider ${id}`);
                         // Limpiar el timeout de confirmación
                         if (confirmationTimeoutRef.current) {
                             clearTimeout(confirmationTimeoutRef.current);
@@ -96,32 +78,32 @@ export function SwitchApp({ item }) {
                         }
                         pendingValueRef.current = null;
                         setIsLoading(false);
-                        setLastSentValue(newValue);
+                        setLastSentValue(boundedValue);
                     } else {
                         // Si el valor es diferente, actualizamos al valor recibido del servidor
-                        console.log(`Valor recibido distinto al solicitado para switch ${magnitude}`);
-                        setValue(newValue);
-                        setLastSentValue(newValue);
+                        console.log(`Valor recibido distinto al solicitado para slider ${id}`);
+                        setValue(boundedValue);
+                        setLastSentValue(boundedValue);
                         pendingValueRef.current = null;
                         setIsLoading(false);
                     }
                 } else {
                     // Mensaje normal de actualización
-                    setValue(newValue);
-                    setLastSentValue(newValue);
+                    setValue(boundedValue);
+                    setLastSentValue(boundedValue);
                 }
 
                 // Marcar que ya recibimos el valor inicial y desbloquear el control
                 if (!initialValueReceived) {
                     setInitialValueReceived(true);
                     setIsLoading(false);
-                    console.log(`Switch ${magnitude} inicializado con valor ${newValue}`);
+                    console.log(`Slider ${id} inicializado con valor ${boundedValue}`);
                 }
             } else if (msg.payload && msg.payload.status !== undefined) {
                 // Procesar mensaje de estado (si existe)
                 if (msg.payload.status === 'error' && pendingValueRef.current !== null) {
                     // Error en la acción, revertir al valor anterior
-                    console.error(`Error en acción para switch ${magnitude}`);
+                    console.error(`Error en acción para slider ${id}`);
                     setValue(lastSentValue);
                     pendingValueRef.current = null;
                     setError("Error en la acción");
@@ -135,23 +117,20 @@ export function SwitchApp({ item }) {
                 }
             }
         });
-    }, [messages, magnitude, initialValueReceived, lastSentValue]);
-
-    const timeDebounce = 100;
+    }, [messages, id, magnitude, min, max, defaultValue, initialValueReceived, lastSentValue]);
 
     const debouncedSend = useCallback(
         useDebounce(async (valueToSend) => {
             // Solo enviar si es diferente y ya hemos recibido el valor inicial
-            if (valueToSend !== lastSentValue && initialValueReceived) {
+            if (valueToSend !== lastSentValue && isConnected && initialValueReceived) {
                 setIsLoading(true);
                 setError(null);
 
                 try {
-                    const numericValue = valueToSend ? "1" : "0";
                     const msg = {
                         element: id,
-                        action: numericValue,
-                        ud: " "
+                        action: valueToSend.toString(),
+                        ud: "pwm"
                     }
                     const topic = "devices/play";
                     console.log(`Enviando valor ${valueToSend} a ${topic}`);
@@ -165,7 +144,7 @@ export function SwitchApp({ item }) {
                     }
 
                     confirmationTimeoutRef.current = setTimeout(() => {
-                        console.log(`Timeout de confirmación para switch ${magnitude}`);
+                        console.log(`Timeout de confirmación para slider ${id}`);
                         if (pendingValueRef.current !== null) {
                             // Si aún hay un valor pendiente, revertir
                             setValue(lastSentValue);
@@ -175,9 +154,7 @@ export function SwitchApp({ item }) {
                         }
                     }, CONFIRMATION_TIMEOUT);
 
-                    // Enviamos el mensaje y esperamos respuesta
                     const success = await sendMessage(topic, msg);
-                    console.log("Resultado del envío:", success);
 
                     if (!success) {
                         throw new Error("No se pudo enviar el mensaje");
@@ -188,7 +165,7 @@ export function SwitchApp({ item }) {
                 } catch (err) {
                     console.error("Error al enviar mensaje:", err);
                     setError(err.message || "Error de comunicación");
-                    setValue(lastSentValue); // Revertir al estado anterior
+                    setValue(lastSentValue);
                     pendingValueRef.current = null;
 
                     // Limpiar timeout
@@ -201,7 +178,7 @@ export function SwitchApp({ item }) {
                 }
             }
         }, timeDebounce),
-        [id, sendMessage, lastSentValue, initialValueReceived]
+        [id, sendMessage, lastSentValue, isConnected, initialValueReceived]
     );
 
     // Limpiar timeouts cuando el componente se desmonte
@@ -228,44 +205,88 @@ export function SwitchApp({ item }) {
         }
     }, [value, debouncedSend, isConnected, isLoading, initialValueReceived]);
 
-    const handleChange = () => {
+    const handleSliderChange = (newValue) => {
         // Solo permitir cambios si no está cargando y ya recibimos el valor inicial
         if (!isLoading && initialValueReceived) {
-            setValue(!value);
+            setValue(newValue[0]);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        // Solo permitir cambios si no está cargando y ya recibimos el valor inicial
+        if (!isLoading && initialValueReceived) {
+            const newValue = Number(e.target.value);
+            if (!isNaN(newValue) && newValue >= min && newValue <= max) {
+                setValue(newValue);
+            }
         }
     };
 
     return (
-        <div className="flex items-center justify-between my-4">
-            <div className="flex items-center gap-2">
-                <Label htmlFor={`switch-${id}`} className={error ? "text-red-500" : ""}>
-                    {title}
-                    {error && (
-                        <Badge variant="destructive" className="ml-2">
-                            {error}
-                        </Badge>
-                    )}
-                </Label>
-            </div>
+        <>
+            <div className="my-4 relative">
 
-            <div className="relative">
-                {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <div className="flex items-center justify-between mb-4">
+                    <Label
+                        htmlFor={`${title}-slider`}
+                        className={error ? "text-red-500" : ""}
+                    >
+                        {title}
+
+                    </Label>
+                    <div className="relative">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded">
+                                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                            </div>
+                        )}
+                        <Input
+                            id={`${title}-input`}
+                            type="number"
+                            value={value}
+                            onChange={handleInputChange}
+                            className={`w-12 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            min={min}
+                            max={max}
+                            step={step}
+                            disabled={isLoading || !initialValueReceived}
+                        />
                     </div>
-                )}
+                </div>
 
-                <Switch
-                    id={`switch-${id}`}
-                    checked={value}
-                    onCheckedChange={handleChange}
-                    disabled={isLoading || !initialValueReceived}
-                    className={
-                        isLoading || !initialValueReceived ? "opacity-50 cursor-not-allowed" :
-                            error ? "border-red-500" : ""
-                    }
-                />
+                <div className="flex flex-col items-center">
+                    <span className="text-sm text-muted-foreground mb-2">{max}</span>
+                    <div className="relative h-40">
+                        {isLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                                <div className="bg-background/50 p-2 rounded-full">
+                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                </div>
+                            </div>
+                        )}
+                        <Slider
+                            id={`${title}-slider`}
+                            min={min}
+                            max={max}
+                            step={step}
+                            value={[value]}
+                            onValueChange={handleSliderChange}
+                            orientation="vertical"
+                            className={`h-40 ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            disabled={isLoading || !initialValueReceived}
+                        />
+                    </div>
+                    <span className="text-sm text-muted-foreground mt-2">{min}</span>
+                </div>
             </div>
-        </div>
+
+            {
+                error && (
+                    <Badge variant="destructive" className="mr-2 my-2">
+                        {error}
+                    </Badge>
+                )
+            }
+        </>
     );
 }

@@ -1,14 +1,14 @@
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useState, useEffect, useCallback, useRef } from "react"
-import { useDebounce } from "@/hooks/use-debounce"
+import useDebounce from "@/hooks/useDebounce"
 import { useMQTT } from "@/context/mqtt-context"
-import { Loader2, MenuSquare } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export function SwitchApp({ item }) {
     const { messages, isConnected, sendMessage, error: mqttError } = useMQTT();
-    const { title, defaultValue, id, magnitude, slider } = item;
+    const { title, defaultValue, id, magnitude } = item;
     const [value, setValue] = useState(defaultValue);
     const [lastSentValue, setLastSentValue] = useState(defaultValue);
     const [isLoading, setIsLoading] = useState(true); // Iniciar como cargando
@@ -42,7 +42,7 @@ export function SwitchApp({ item }) {
 
         // Buscar el último mensaje del slider correspondiente
         const sliderMessages = messages.filter(msg =>
-            msg?.payload?.magnitude === slider &&
+            msg?.payload?.magnitude === `status_speed_${id}` &&
             !processedMessagesRef.current.has(msg.timestamp)
         );
 

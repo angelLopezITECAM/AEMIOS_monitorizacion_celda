@@ -9,6 +9,7 @@ MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
 COMMAND_TOPIC = os.getenv("COMMAND_TOPIC", "devices/data")
 DATA_TOPIC = os.getenv("DATA_TOPIC", "devices/play")
 ALARMS_TOPIC = os.getenv("DATA_TOPIC", "devices/alarms")
+STATUS_TOPIC = os.getenv("STATUS_TOPIC", "devices/status")
 
 # Configuración de InfluxDB
 INFLUXDB_HOST = os.getenv("INFLUXDB_HOST", "influxdb")

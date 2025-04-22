@@ -1,16 +1,8 @@
-
 from fastapi import FastAPI
-from mqtt.client import connect_mqtt, start_mqtt_loop
-
 from routes.mqtt import router as router_mqtt
 from routes.influx import router as router_influx
-
 from middlewares.cors import add as add_cors
-
-
-# Añadimos el middleware CORS
-
-
+from services.mqtt import start_mqtt_client
 
 app = FastAPI(title="API con MQTT e InfluxDB", version="1.0.0")
 
@@ -22,10 +14,9 @@ add_cors(app)
 
 @app.on_event("startup")
 def startup_event():
-    # Conectar al broker MQTT y arrancar el loop en un hilo separado
-    connect_mqtt()
-    start_mqtt_loop()
-    print("Aplicación iniciada y conectada al Broker MQTT.")
+    # Iniciar el cliente MQTT
+    start_mqtt_client()
+    print("Aplicación iniciada y cliente MQTT conectado.")
 
 @app.get("/")
 async def root():

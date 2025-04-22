@@ -1,3 +1,6 @@
+backend = api
+contenedor_backend = api_aemios_mc_01
+
 run:
 	docker compose down
 	docker compose up -d
@@ -9,4 +12,9 @@ restart:
 restart_full:
 	docker compose down -v --rmi all
 	rm -rfv data/grafama-storage data/influxdb-storage
+	make run
+
+back:
+	docker compose rm -svf $(backend)
+	docker rmi $(contenedor_backend) 
 	make run

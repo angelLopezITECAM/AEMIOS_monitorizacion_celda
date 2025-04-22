@@ -19,6 +19,8 @@ import { createIndicator } from '@/gui/indicator';
 import { setupCamera, focusCameraOnMesh } from '@/services/babylon/camera';
 import { setupScene } from '@/services/babylon/scene';
 import '@/assets/panel.css'
+import { PanelControl } from './components/panel-control';
+import { MQTTProvider } from "@/context/mqtt-context";
 
 const partesCelda = [
     {
@@ -303,106 +305,7 @@ const BabylonScene = () => {
         }
     }, [uiConfig]);
 
-    return <div style={{ position: 'relative', width: '100vw', height: '100vh', overflowY: 'hidden' }}>
-        <canvas ref={canvasRef} style={{ width: '100vw', height: '100vh' }} />
-        <div className='m-panel'>
-            <h3 className='m-panel--title'>Celda AEM</h3>
-            <div className='m-panel__content'>
-                <section className='m-panel__section'>
-                    <div className='flex-between'>
-                        <h4 className='m-panel__section--title'>Bomba cátodo</h4>
-                        <label className="switch">
-                            <input type="checkbox" id='switchCatodo' />
-                            <span className="slider round"></span>
-                        </label>
-                    </div>
-                    <div className='m-panel__data'>
-                        <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>0.3</span> kWh</p>
-                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
-                        </div>
-                        <div className='flex-between'>
-                            <div>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>20</span> V</p>
-                                <p className='m-panel__data' id='caudalCatodo'><strong>Caudal:</strong> <span>5</span> l/h</p>
-                            </div>
-
-                            <div className='flex-between'>
-                                <input type='range' className='m-panel__input m-panel__input-range' min={1} max={100} id='sliderCatodo' />
-                                <input type='number' className='m-panel__input m-panel__input-number' id='inputCatodo' />
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section className='m-panel__section'>
-                    <div className='flex-between'>
-                        <h4 className='m-panel__section--title'>Bomba ánodo</h4>
-                        <label className="switch">
-                            <input type="checkbox" id='switchAnodo' />
-                            <span className="slider round"></span>
-                        </label>
-                    </div>
-                    <div className='m-panel__data'>
-                        <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>1.0</span> kWh</p>
-                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
-                        </div>
-                        <div className='flex-between'>
-                            <div>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>25</span> V</p>
-                                <p className='m-panel__data' id='caudalAnodo'><strong>Caudal:</strong> <span>10</span> l/h</p>
-                            </div>
-
-                            <div className='flex-between'>
-                                <input type='range' className='m-panel__input m-panel__input-range' min={1} max={100} id='sliderAnodo' />
-                                <input type='number' className='m-panel__input m-panel__input-number' id='inputAnodo' />
-                            </div>
-                        </div>
-
-
-
-                    </div>
-                </section>
-                <section className='m-panel__section'>
-                    <div className='flex-between'>
-                        <h4 className='m-panel__section--title'>Termopar</h4>
-                    </div>
-                    <div className='m-panel__data'>
-                        <div className='flex-between'>
-                            <p className='m-panel__data'><strong>Consumo:</strong> <span>1.2</span> kWh</p>
-                            <p className='m-panel__data'><strong>Potencia:</strong> <span>5</span> W</p>
-                        </div>
-                        <div className='flex-between'>
-                            <div className='flex-'>
-                                <p className='m-panel__data'><strong>Voltaje:</strong> <span>35</span> V</p>
-                                <p className='m-panel__data'><strong>Temperatura:</strong> <span>15</span> ºC</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <section className='m-panel__section'>
-                    <div className='flex-between'>
-                        <h4 className='m-panel__section--title'>Controladora</h4>
-                        <label className="switch">
-                            <input type="checkbox" id='switchControladora' />
-                            <span className="slider round"></span>
-                        </label>
-                    </div>
-                </section>
-                <section className='m-panel__section'>
-                    <div className='flex-between'>
-                        <h4 className='m-panel__section--title'>Vista detalle</h4>
-                        <label className="switch">
-                            <input type="checkbox" id='switchDetalle' />
-                            <span className="slider round"></span>
-                        </label>
-                    </div>
-                </section>
-            </div>
-
-            <button className='m-panel__btn' id='btnHideInfo'>Ocultar info</button>
-        </div>
-    </div>;
+    return <MQTTProvider><PanelControl canvasRef={canvasRef} /></MQTTProvider>;
 };
 
 export default BabylonScene;

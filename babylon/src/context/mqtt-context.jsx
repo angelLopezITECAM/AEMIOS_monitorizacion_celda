@@ -8,6 +8,9 @@ export const MQTTProvider = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState([]);
     const [error, setError] = useState(null);
+    const [reconnectAttempts, setReconnectAttempts] = useState(0);
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_INTERVAL = 5000;
 
     // Esta función debe estar fuera, no dentro de connectWebSocket
     const sendMessage = useCallback((topic, message) => {
@@ -70,14 +73,30 @@ export const MQTTProvider = ({ children }) => {
                 console.log("Estado del socket:", ws.readyState);
                 setIsConnected(true);
                 setError(null);
+                setReconnectAttempts(0); // Resetear intentos de reconexión
             }
 
             ws.onmessage = (event) => {
                 try {
                     let data = JSON.parse(event.data);
                     console.log("Mensaje recibido en WebSocket:", data);
-                    data.process = false;
-                    setMessages(prev => [...prev, data]);
+
+                    // Asegurarnos de que el mensaje tenga la estructura correcta
+                    if (data && typeof data === 'object') {
+                        // Marcar el mensaje como no procesado si no tiene la bandera
+                        if (data.process === undefined) {
+                            data.process = false;
+                        }
+
+                        // Actualizar el estado de los mensajes
+                        setMessages(prev => {
+                            // Limitar a los últimos 100 mensajes para evitar problemas de memoria
+                            const newMessages = [...prev, data].slice(-100);
+                            return newMessages;
+                        });
+                    } else {
+                        console.warn("Mensaje recibido con formato incorrecto:", data);
+                    }
                 } catch (error) {
                     console.error("Error al parsear el mensaje:", error);
                 }
@@ -92,11 +111,18 @@ export const MQTTProvider = ({ children }) => {
             ws.onclose = () => {
                 console.log("Conexión WebSocket cerrada");
                 setIsConnected(false);
-                // Intentar reconectar después de 5 segundos
-                setTimeout(() => {
-                    console.log("Intentando reconectar...");
-                    connectWebSocket();
-                }, 5000);
+
+                // Intentar reconectar si no hemos excedido el número máximo de intentos
+                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    setReconnectAttempts(prev => prev + 1);
+                    console.log(`Intentando reconectar (intento ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+                    setTimeout(() => {
+                        connectWebSocket();
+                    }, RECONNECT_INTERVAL);
+                } else {
+                    console.error("Se excedió el número máximo de intentos de reconexión");
+                    setError("No se pudo establecer la conexión después de múltiples intentos");
+                }
             }
 
             setSocket(ws);
@@ -113,7 +139,7 @@ export const MQTTProvider = ({ children }) => {
             setError("No se pudo establecer la conexión WebSocket");
             return null;
         }
-    }, []);
+    }, [reconnectAttempts]);
 
     useEffect(() => {
         console.log("=== Iniciando efecto de conexión WebSocket ===");
