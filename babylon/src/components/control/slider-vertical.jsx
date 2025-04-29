@@ -245,7 +245,7 @@ export function SliderVertical({ item }) {
                             type="number"
                             value={value}
                             onChange={handleInputChange}
-                            className={`w-12 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            className={`w-8 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
                             min={min}
                             max={max}
                             step={step}

@@ -92,7 +92,7 @@ export function PanelControl({ canvasRef }) {
                     </section>
                 </div>
 
-                <button className='m-panel__btn' id='btnHideInfo'>Ocultar info</button>
+                {/* <button className='m-panel__btn' id='btnHideInfo'>Ocultar info</button> */}
             </div>
         </div>
     )
@@ -104,7 +104,7 @@ const itemsSlider = [
         title: "Cátodo",
         defaultValue: 14,
         min: 0,
-        max: 255,
+        max: 100,
         step: 1,
         magnitude: "status_speed_cat_pump",
         idElement: "sliderCatodo",
@@ -114,7 +114,7 @@ const itemsSlider = [
         title: "Ánodo",
         defaultValue: 76,
         min: 0,
-        max: 255,
+        max: 100,
         step: 1,
         magnitude: "status_speed_an_pump",
     },

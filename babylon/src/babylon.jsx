@@ -194,7 +194,7 @@ const BabylonScene = () => {
                                 const childMesh = scene.getMeshByName(pCelda.childMesh)
                                 pCelda.initialPositionChild = childMesh.position
                             }
-                            createIndicator(scene, canvas, meshParteCelda, pCelda)
+                            /* createIndicator(scene, canvas, meshParteCelda, pCelda) */
                         })
 
                         console.log(partesCelda)
