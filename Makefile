@@ -1,5 +1,5 @@
 backend = api
-contenedor_backend = api_aemios_mc_01
+contenedor_backend = aemios_monitorizacion_celda-api
 
 run:
 	docker compose down
