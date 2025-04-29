@@ -125,12 +125,34 @@ export const MQTTProvider = ({ children }) => {
         };
     }, [connectWebSocket]);
 
+    const markAlarmAsProcessed = (alarm) => {
+        setMessages(prev => prev.map(msg => {
+            if (msg.topic === alarm.topic &&
+                msg.timestamp === alarm.timestamp &&
+                msg.payload === alarm.payload) {
+                return { ...msg, process: true };
+            }
+            return msg;
+        }));
+    };
+
+    const publishMessage = (topic, message) => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({
+                topic,
+                message
+            }));
+        }
+    };
+
     const value = {
         isConnected,
         messages,
         error,
         sendMessage,
-        reconnect: connectWebSocket
+        reconnect: connectWebSocket,
+        markAlarmAsProcessed,
+        publishMessage
     };
 
     return (

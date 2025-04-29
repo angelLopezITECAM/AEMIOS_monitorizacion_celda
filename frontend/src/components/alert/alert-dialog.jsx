@@ -17,9 +17,9 @@ import { useMQTT } from "@/context/mqtt-context";
 import { useEffect, useState } from "react"
 
 export function AlertDialog() {
-
-    const { messages } = useMQTT();
+    const { messages, markAlarmAsProcessed } = useMQTT();
     const [open, setOpen] = useState(false);
+    const [currentAlarm, setCurrentAlarm] = useState(null);
 
     useEffect(() => {
         const alarmas = messages.filter((alert) => {
@@ -27,11 +27,20 @@ export function AlertDialog() {
         })
 
         if (alarmas.length > 0) {
+            setCurrentAlarm(alarmas[0]);
             setOpen(true)
         }
     }, [messages])
+
+    const handleClose = () => {
+        if (currentAlarm) {
+            markAlarmAsProcessed(currentAlarm);
+        }
+        setOpen(false);
+    };
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>¡Nueva alerta!</DialogTitle>
