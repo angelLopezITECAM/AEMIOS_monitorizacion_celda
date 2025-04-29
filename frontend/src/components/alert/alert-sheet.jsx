@@ -30,7 +30,7 @@ export function AlertSheet({ open, onOpenChange }) {
     const timeFilter = `start=${startDate}&end=${endDate}`;
     const magnitude = "alarms"
     const { data: historicalData } = useSWR(
-        `http://192.168.15.38:8000/api/influx/alarms?${timeFilter}`,
+        `http://192.168.15.109:8000/api/influx/alarms?${timeFilter}`,
         fetcher,
         {
             revalidateIfStale: false,

@@ -20,7 +20,7 @@ export function useChartData({ magnitude, fixedValue, processValue }) {
 
     // Obtener datos históricos con SWR
     const { data: historicalData } = useSWR(
-        `http://192.168.15.38:8000/api/influx/data/${magnitude}?${timeFilter}`,
+        `http://192.168.15.109:8000/api/influx/data/${magnitude}?${timeFilter}`,
         fetcher,
         {
             revalidateIfStale: false,

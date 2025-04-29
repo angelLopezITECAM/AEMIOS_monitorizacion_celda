@@ -22,7 +22,7 @@ export function useMultiSeriesChartData(magnitudes) {
     };
 
     const fetchUrls = magnitudes.map(mag =>
-        `http://192.168.15.38:8000/api/influx/data/${mag.endpoint}?${timeFilter}`
+        `http://192.168.15.109:8000/api/influx/data/${mag.endpoint}?${timeFilter}`
     );
 
     const swrResponses = magnitudes.map((mag, index) =>

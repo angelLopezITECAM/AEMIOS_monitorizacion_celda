@@ -19,8 +19,8 @@ export function PageGemelo() {
             <div className="max-h-[85vh] h-[85vh] m-2 ">
                 {isLoading && <Loader />}
                 <iframe
-                    /* src="http://192.168.15.109:3003/" */
-                    src="http://localhost:3003/"
+                    src="http://192.168.15.109:3003/"
+                    /* src="http://localhost:3003/" */
                     className="w-full h-full rounded-3xl"
                     onLoad={() => setIsLoading(false)} />
 
