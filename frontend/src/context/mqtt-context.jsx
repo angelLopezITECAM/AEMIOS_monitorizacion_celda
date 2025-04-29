@@ -77,7 +77,11 @@ export const MQTTProvider = ({ children }) => {
                     let data = JSON.parse(event.data);
                     console.log("Mensaje recibido en WebSocket:", data);
                     data.process = false;
-                    setMessages(prev => [...prev, data]);
+                    setMessages(prev => {
+                        const nuevos = [...prev, data];
+
+                        return nuevos.slice(-100);
+                    });
                 } catch (error) {
                     console.error("Error al parsear el mensaje:", error);
                 }
