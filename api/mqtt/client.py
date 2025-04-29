@@ -24,7 +24,7 @@ class MQTTClient:
         self.client = mqtt.Client()
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: list[dict] = []
         self.mqtt_messages = asyncio.Queue(maxsize=100)
 
     def _on_connect(self, client, userdata, flags, rc):
@@ -143,8 +143,9 @@ class MQTTClient:
 
     async def connect_websocket(self, websocket: WebSocket):
         await websocket.accept()
-        self.active_connections.append(websocket)
-        print(f"Nueva conexión WebSocket. Total conexiones: {len(self.active_connections)}")
+        client_ip = websocket.client.host
+        self.active_connections.append({"websocket": websocket, "client_ip": client_ip})
+        print(f"Nueva conexión WebSocket desde {client_ip}. Total conexiones: {len(self.active_connections)}")
         
         try:
             # Enviar mensajes acumulados en la cola
@@ -184,9 +185,11 @@ class MQTTClient:
                     print(f"Error en conexión WebSocket: {e}")
                     break
         finally:
-            if websocket in self.active_connections:
-                self.active_connections.remove(websocket)
-            print(f"Conexión WebSocket cerrada. Total conexiones: {len(self.active_connections)}")
+            for conn in self.active_connections:
+                if conn["websocket"] == websocket:
+                    self.active_connections.remove(conn)
+                    break
+                print(f"Conexión WebSocket cerrada. Total conexiones: {len(self.active_connections)}")
 
 # Crear una única instancia global
 mqtt_client = MQTTClient()
