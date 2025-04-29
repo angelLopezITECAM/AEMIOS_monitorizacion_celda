@@ -90,19 +90,19 @@ function ControlPanel() {
 const itemsSlider = [
     {
         id: "speed_cat_pump",
-        title: "Bomba cátodo",
+        title: "Bomba cátodo (%)",
         defaultValue: 14,
         min: 0,
-        max: 255,
+        max: 100,
         step: 1,
         magnitude: "status_speed_cat_pump",
     },
     {
         id: "speed_an_pump",
-        title: "Bomba ánodo",
+        title: "Bomba ánodo (%)",
         defaultValue: 76,
         min: 0,
-        max: 255,
+        max: 100,
         step: 1,
         magnitude: "status_speed_an_pump",
     },

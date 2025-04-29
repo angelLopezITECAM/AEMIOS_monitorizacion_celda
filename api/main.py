@@ -1,23 +1,43 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from routes.mqtt import router as router_mqtt
 from routes.influx import router as router_influx
-from middlewares.cors import add as add_cors
-from services.mqtt import start_mqtt_client
+from services.mqtt import publish_to_mqtt, connect_websocket, start_mqtt_client
+from mqtt.client import mqtt_client
+import asyncio
+import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 app = FastAPI(title="API con MQTT e InfluxDB", version="1.0.0")
 
-# Incluimos los endpoints de comandos
-app.include_router(router_mqtt, prefix="/api/mqtt")
-app.include_router(router_influx, prefix="/api/influx")
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especifica los orígenes permitidos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-add_cors(app)
+# Incluir los routers
+app.include_router(router_mqtt, prefix="/api/mqtt", tags=["MQTT"])
+app.include_router(router_influx, prefix="/api/influx", tags=["InfluxDB"])
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     # Iniciar el cliente MQTT
     start_mqtt_client()
-    print("Aplicación iniciada y cliente MQTT conectado.")
+
+@app.websocket("/api/mqtt/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await connect_websocket(websocket)
 
 @app.get("/")
 async def root():
-    return {"message": "Bienvenido a la API"}
+    return {"message": "API de monitoreo MQTT"}
+
+@app.post("/publish")
+async def publish_message(topic: str, message: dict):
+    success = await publish_to_mqtt(topic, message)
+    return {"success": success}
