@@ -226,7 +226,7 @@ export function SliderVertical({ item }) {
         <>
             <div className="my-4 relative">
 
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-column">
                     <Label
                         htmlFor={`${title}-slider`}
                         className={error ? "text-red-500" : ""}
@@ -245,7 +245,7 @@ export function SliderVertical({ item }) {
                             type="number"
                             value={value}
                             onChange={handleInputChange}
-                            className={`w-8 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            className={`w-12 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
                             min={min}
                             max={max}
                             step={step}
