@@ -63,7 +63,7 @@ export const MQTTProvider = ({ children }) => {
     const connectWebSocket = useCallback(() => {
         try {
             console.log("=== Iniciando conexión WebSocket ===");
-            const ws = new WebSocket("ws://192.168.15.109:8000/api/mqtt/ws");
+            const ws = new WebSocket("ws://192.168.15.109:8002/api/mqtt/ws");
 
             ws.onopen = () => {
                 console.log("Conexión WebSocket establecida");

@@ -72,7 +72,7 @@ services:
       context: ./api
     container_name: api_aemios_mc_01
     ports:
-      - "8000:8000"
+      - "8002:8002"
     volumes:
       - ./api:/app
     depends_on:

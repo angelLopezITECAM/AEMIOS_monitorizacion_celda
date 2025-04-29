@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:8000/api
+@baseUrl = http://localhost:8002/api
 
 ### CHECK INFLUX CONNECTION
 GET {{baseUrl}}/influx/ping
