@@ -5,13 +5,14 @@ import { SwitchApp } from './control/switch';
 import { SliderVertical } from './control/slider-vertical';
 import { DataBombas } from './control/data-bombas';
 import { DataTermopar } from './control/data-termopar';
+import { LimitApp } from './control/limit';
 export function PanelControl({ canvasRef }) {
 
-    const [isLoading, setIsLoading] = useState(true)
+
+    const { isConnected, publish } = useMQTT();
     const [initialMessageSent, setInitialMessageSent] = useState(false);
     const [error, setError] = useState(null);
-
-    const { isConnected, sendMessage } = useMQTT()
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         setIsLoading(!isConnected)
@@ -20,7 +21,7 @@ export function PanelControl({ canvasRef }) {
     useEffect(() => {
         const sendInitialMessage = async () => {
             if (isConnected && !initialMessageSent) {
-                console.log("=== Intentando enviar mensaje inicial ===");
+
                 try {
                     const initialMessage = {
                         element: "state",
@@ -28,9 +29,7 @@ export function PanelControl({ canvasRef }) {
                         ud: " "
                     };
 
-                    console.log("Enviando mensaje inicial:", initialMessage);
-                    const result = await sendMessage("devices/play", initialMessage);
-                    console.log("Resultado del envío:", result);
+                    const result = await publish("devices/play", JSON.stringify(initialMessage));
 
                     if (result) {
                         console.log("Mensaje inicial enviado con éxito");
@@ -40,7 +39,7 @@ export function PanelControl({ canvasRef }) {
                 } catch (err) {
                     console.error("Error al enviar mensaje inicial:", err);
                     setError(err.message);
-                    // Reintentar en 2 segundos
+
                     setTimeout(() => {
                         setInitialMessageSent(false);
                     }, 2000);
@@ -49,7 +48,7 @@ export function PanelControl({ canvasRef }) {
         };
 
         sendInitialMessage();
-    }, [isConnected, sendMessage, initialMessageSent]);
+    }, [isConnected, publish, initialMessageSent]);
 
     if (isLoading) return "Cargando..."
 
@@ -76,7 +75,11 @@ export function PanelControl({ canvasRef }) {
                             ))
                         }
                     </section>
-
+                    <section className="m-panel__section">
+                        <LimitApp
+                            item={itemsLimit[0]}
+                        />
+                    </section>
                     <DataBombas />
                     <DataTermopar />
 
@@ -144,38 +147,17 @@ const itemsSwitch = [
     },
 ];
 
-const itemsBombas = [
+const itemsLimit = [
     {
-        title: "Intensidad",
-        magnitude: "amperage_pumps",
+        id: "limit_temperature_tc",
+        title: "Límite temperatura (ºC)",
+        defaultValue: 20,
+        min: 0,
+        max: 100,
+        step: 1,
+        magnitude: "status_limit_temperature_tc",
     },
-    {
-        title: "Potencia",
-        magnitude: "",
-    },
-    {
-        title: "Voltaje",
-        magnitude: "",
-    },
-]
 
-const itemsTermopar = [
-    {
-        title: "Intensidad",
-        magnitude: "amperage_tc",
-    },
-    {
-        title: "Potencia",
-        magnitude: "",
-    },
-    {
-        title: "Voltaje",
-        magnitude: "",
-    },
-    {
-        title: "Temperatura",
-        magnitude: "temperature_tc",
-    },
-]
+];
 
 

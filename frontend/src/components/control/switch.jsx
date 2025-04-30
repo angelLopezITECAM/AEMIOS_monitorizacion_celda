@@ -6,205 +6,89 @@ import { useMQTT } from "@/context/mqtt-context"
 import { Loader2, MenuSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
+
 export function SwitchApp({ item }) {
-    const { messages, isConnected, sendMessage, error: mqttError } = useMQTT();
+
     const { title, defaultValue, id, magnitude, slider } = item;
+    const topicGetStatus = `devices/status`;
+    const topicSetStatus = `devices/play`;
+
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+
+    const [isLoading, setIsLoading] = useState(true);
     const [value, setValue] = useState(defaultValue);
-    const [lastSentValue, setLastSentValue] = useState(defaultValue);
-    const [isLoading, setIsLoading] = useState(true); // Iniciar como cargando
-    const [error, setError] = useState(null);
-    const [initialValueReceived, setInitialValueReceived] = useState(false);
+    const [infoMsg, setInfoMsg] = useState("Esperando estado inicial del sistema...");
+    const [errorMsg, setErrorMsg] = useState("");
 
-    // Nueva ref para el timeout de confirmación
+    const valueBeforeToggle = useRef(defaultValue);
     const confirmationTimeoutRef = useRef(null);
-    // Agregar una ref para el valor que está pendiente de confirmación
-    const pendingValueRef = useRef(null);
-    // Tiempo de espera para la confirmación en ms
-    const CONFIRMATION_TIMEOUT = 5000;
-
-    // Referencia para rastrear mensajes ya procesados
-    const processedMessagesRef = useRef(new Set());
-
-    // Función para obtener el valor booleano desde diferentes formatos
-    const getValue = (rawValue) => {
-        if (typeof rawValue === 'boolean') return rawValue;
-        if (typeof rawValue === 'string') {
-            const normalized = rawValue.toLowerCase().trim();
-            return normalized === '1' || normalized === 'true' || normalized === 'on';
-        }
-        if (typeof rawValue === 'number') return rawValue === 1;
-        return false;
-    };
-
-    // Función para verificar si hay un mensaje de slider con valor 0
-    const checkSliderValue = useCallback(() => {
-        if (!messages || messages.length === 0) return;
-
-        // Buscar el último mensaje del slider correspondiente
-        const sliderMessages = messages.filter(msg =>
-            msg?.payload?.magnitude === slider &&
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
-
-        if (sliderMessages.length > 0) {
-            const lastSliderMessage = sliderMessages[sliderMessages.length - 1];
-            const sliderValue = parseFloat(lastSliderMessage.payload.value);
-
-            // Si el slider está en 0, desactivar el switch
-            if (sliderValue === 0 && value) {
-                console.log(`Slider ${id} está en 0, desactivando switch`);
-                setValue(false);
-                setLastSentValue(false);
-            }
-        }
-    }, [messages, id, value]);
 
     useEffect(() => {
-        checkSliderValue();
-    }, [checkSliderValue]);
+        if (isConnected) {
+            subscribe(topicGetStatus);
+
+            return () => {
+                unsubscribe(topicGetStatus);
+            }
+        } else {
+            setIsLoading(true);
+            setInfoMsg("Conectando al sistema...");
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetStatus]);
+
+    const lastMessage = messages.findLast(msg => msg.message.magnitude === magnitude);
 
     useEffect(() => {
-        if (!messages || messages.length === 0) return;
+        if (lastMessage) {
+            const newValue = lastMessage.message.value;
+            const confirmedValue = (typeof newValue === 'string') ? (newValue === "1") : Boolean(newValue);
 
-        console.log(messages)
-        // Filtrar solo mensajes relevantes para este interruptor y no procesados
-        const relevantMessages = messages.filter(msg =>
-            (msg?.payload?.magnitude === magnitude) && // Comprobar si el mensaje es para este elemento
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
-
-        if (relevantMessages.length === 0) return;
-
-        // Procesar los mensajes
-        relevantMessages.forEach(msg => {
-            // Marcar como procesado para evitar duplicados
-            processedMessagesRef.current.add(msg.timestamp);
-
-            if (msg.payload && msg.payload.value !== undefined) {
-                const newValue = getValue(msg.payload.value);
-                console.log(`Actualizando switch ${magnitude} con valor:`, newValue);
-
-                // Comprobar si este mensaje es una confirmación de una acción pendiente
-                if (pendingValueRef.current !== null) {
-                    // Si el valor recibido es igual al pendiente, confirmamos la acción
-                    if (newValue === pendingValueRef.current) {
-                        console.log(`Confirmación recibida para switch ${magnitude}`);
-                        // Limpiar el timeout de confirmación
-                        if (confirmationTimeoutRef.current) {
-                            clearTimeout(confirmationTimeoutRef.current);
-                            confirmationTimeoutRef.current = null;
-                        }
-                        pendingValueRef.current = null;
-                        setIsLoading(false);
-                        setLastSentValue(newValue);
-                    } else {
-                        // Si el valor es diferente, actualizamos al valor recibido del servidor
-                        console.log(`Valor recibido distinto al solicitado para switch ${magnitude}`);
-                        setValue(newValue);
-                        setLastSentValue(newValue);
-                        pendingValueRef.current = null;
-                        setIsLoading(false);
-                    }
-                } else {
-                    // Mensaje normal de actualización
-                    setValue(newValue);
-                    setLastSentValue(newValue);
-                }
-
-                // Marcar que ya recibimos el valor inicial y desbloquear el control
-                if (!initialValueReceived) {
-                    setInitialValueReceived(true);
-                    setIsLoading(false);
-                    console.log(`Switch ${magnitude} inicializado con valor ${newValue}`);
-                }
-            } else if (msg.payload && msg.payload.status !== undefined) {
-                // Procesar mensaje de estado (si existe)
-                if (msg.payload.status === 'error' && pendingValueRef.current !== null) {
-                    // Error en la acción, revertir al valor anterior
-                    console.error(`Error en acción para switch ${magnitude}`);
-                    setValue(lastSentValue);
-                    pendingValueRef.current = null;
-                    setError("Error en la acción");
-                    setIsLoading(false);
-
-                    // Limpiar timeout
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                        confirmationTimeoutRef.current = null;
-                    }
-                }
+            if (confirmationTimeoutRef.current) {
+                clearTimeout(confirmationTimeoutRef.current);
+                confirmationTimeoutRef.current = null;
             }
-        });
-    }, [messages, magnitude, initialValueReceived, lastSentValue]);
 
-    const timeDebounce = 100;
+            setValue(confirmedValue);
+            setIsLoading(false);
+            setInfoMsg("");
+            setErrorMsg("");
+        }
+    }, [lastMessage]);
 
-    const debouncedSend = useCallback(
-        useDebounce(async (valueToSend) => {
-            // Solo enviar si es diferente y ya hemos recibido el valor inicial
-            if (valueToSend !== lastSentValue && initialValueReceived) {
-                setIsLoading(true);
-                setError(null);
+    const handleChange = (checked) => {
+        if (confirmationTimeoutRef.current) {
+            clearTimeout(confirmationTimeoutRef.current);
+            confirmationTimeoutRef.current = null;
+        }
 
-                try {
-                    const numericValue = valueToSend ? "1" : "0";
-                    const msg = {
-                        element: id,
-                        action: numericValue,
-                        ud: " "
-                    }
-                    const topic = "devices/play";
-                    console.log(`Enviando valor ${valueToSend} a ${topic}`);
+        valueBeforeToggle.current = value;
+        setIsLoading(true);
+        setValue(checked);
 
-                    // Guardar el valor pendiente de confirmación
-                    pendingValueRef.current = valueToSend;
+        setInfoMsg("Esperando confirmación del sistema...");
+        setErrorMsg("");
 
-                    // Establecer timeout para revertir si no hay confirmación
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                    }
+        const msgSetStatus = { "element": id, "action": checked ? "1" : "0", "ud": " " }
+        publish(topicSetStatus, JSON.stringify(msgSetStatus))
+            .catch(() => {
+                setErrorMsg("No se pudo cambiar el estado. Inténtalo de nuevo.");
+                setInfoMsg("");
+                setValue(valueBeforeToggle.current);
+                setIsLoading(false);
+            });
 
-                    confirmationTimeoutRef.current = setTimeout(() => {
-                        console.log(`Timeout de confirmación para switch ${magnitude}`);
-                        if (pendingValueRef.current !== null) {
-                            // Si aún hay un valor pendiente, revertir
-                            setValue(lastSentValue);
-                            pendingValueRef.current = null;
-                            setError("No se recibió confirmación");
-                            setIsLoading(false);
-                        }
-                    }, CONFIRMATION_TIMEOUT);
-
-                    // Enviamos el mensaje y esperamos respuesta
-                    const success = await sendMessage(topic, msg);
-                    console.log("Resultado del envío:", success);
-
-                    if (!success) {
-                        throw new Error("No se pudo enviar el mensaje");
-                    }
-
-                    // No actualizamos lastSentValue aquí, esperamos confirmación
-
-                } catch (err) {
-                    console.error("Error al enviar mensaje:", err);
-                    setError(err.message || "Error de comunicación");
-                    setValue(lastSentValue); // Revertir al estado anterior
-                    pendingValueRef.current = null;
-
-                    // Limpiar timeout
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                        confirmationTimeoutRef.current = null;
-                    }
-
-                    setIsLoading(false);
-                }
+        confirmationTimeoutRef.current = setTimeout(() => {
+            if (isLoading) {
+                setValue(valueBeforeToggle.current);
+                setIsLoading(false);
+                confirmationTimeoutRef.current = null;
+                setInfoMsg("");
+                setErrorMsg("No se recibió confirmación del sistema.");
             }
-        }, timeDebounce),
-        [id, sendMessage, lastSentValue, initialValueReceived]
-    );
+        }, 5000);
+    }
 
-    // Limpiar timeouts cuando el componente se desmonte
     useEffect(() => {
         return () => {
             if (confirmationTimeoutRef.current) {
@@ -213,37 +97,16 @@ export function SwitchApp({ item }) {
         };
     }, []);
 
-    // Manejar errores del contexto MQTT
-    useEffect(() => {
-        if (mqttError) {
-            setError(mqttError);
-            setValue(lastSentValue);
-        }
-    }, [mqttError, lastSentValue]);
-
-    // Enviar cambios cuando cambia el valor
-    useEffect(() => {
-        if (isConnected && !isLoading && initialValueReceived) {
-            debouncedSend(value);
-        }
-    }, [value, debouncedSend, isConnected, isLoading, initialValueReceived]);
-
-    const handleChange = () => {
-        // Solo permitir cambios si no está cargando y ya recibimos el valor inicial
-        if (!isLoading && initialValueReceived) {
-            setValue(!value);
-        }
-    };
 
     return (
         <div className="flex items-center justify-between my-4">
             <div className="flex items-center gap-2">
-                <Label htmlFor={`switch-${id}`} className={error ? "text-red-500" : ""}>
+                <Label htmlFor={`switch-${id}`}>
                     {title}
-                    {error && (
-                        <Badge variant="destructive" className="ml-2">
-                            {error}
-                        </Badge>
+                    {(infoMsg || errorMsg) && (
+                        <div className={`mt-2 text-xs ${errorMsg ? 'text-red-500' : 'text-blue-500'}`}>
+                            {errorMsg || infoMsg}
+                        </div>
                     )}
                 </Label>
             </div>
@@ -259,10 +122,9 @@ export function SwitchApp({ item }) {
                     id={`switch-${id}`}
                     checked={value}
                     onCheckedChange={handleChange}
-                    disabled={isLoading || !initialValueReceived}
+                    disabled={isLoading}
                     className={
-                        isLoading || !initialValueReceived ? "opacity-50 cursor-not-allowed" :
-                            error ? "border-red-500" : ""
+                        isLoading ? "opacity-50 cursor-not-allowed" : ""
                     }
                 />
             </div>

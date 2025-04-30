@@ -1,6 +1,6 @@
 
 import { TimeFilterProvider, TimeFilter } from '@/context/filter-time-context';
-import { MQTTProvider } from '@/context/mqtt-context';
+import { MqttProvider } from '@/context/mqtt-context';
 
 import { ConsumoTermoparChart } from '@/components/charts/content/termopar/consumo-termopar';
 import { IntensidadTermoparChart } from '@/components/charts/content/termopar/intensidad-termopar';
@@ -11,7 +11,7 @@ import { TemperaturaTermoparChart } from '@/components/charts/content/termopar/t
 export function PageDashboardTermopar() {
     return (
         <TimeFilterProvider>
-            <MQTTProvider>
+            <MqttProvider>
 
                 <div className="flex items-center justify-between my-2 ">
                     <h1 className="text-2xl font-bold tracking-tight">Dashboard - Termopar</h1>
@@ -36,7 +36,7 @@ export function PageDashboardTermopar() {
 
                 </div>
 
-            </MQTTProvider>
+            </MqttProvider>
         </TimeFilterProvider>
     )
 

@@ -19,8 +19,25 @@ import { fetcher } from '@/lib/itecam/fetcher';
 
 export function AlertSheet({ open, onOpenChange }) {
 
+    const topicGetAlarms = `devices/alarms`;
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+    const [isLoading, setIsLoading] = useState(true);
 
-    const { isConnected, messages } = useMQTT();
+    useEffect(() => {
+        if (isConnected) {
+            subscribe(topicGetAlarms);
+
+            return () => {
+                unsubscribe(topicGetAlarms);
+            }
+        } else {
+            setIsLoading(false);
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetAlarms]);
+
+
+
     const [alertas, setAlertas] = useState([]);
     const today = new Date();
     const sevenDaysAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
@@ -28,9 +45,9 @@ export function AlertSheet({ open, onOpenChange }) {
     const endDate = today.toISOString().split('T')[0] + "T23:59:59Z";
 
     const timeFilter = `start=${startDate}&end=${endDate}`;
-    const magnitude = "alarms"
+
     const { data: historicalData } = useSWR(
-        `http://192.168.15.109:8002/api/influx/alarms?${timeFilter}`,
+        `http://192.168.15.38:8002/api/influx/alarms?${timeFilter}`,
         fetcher,
         {
             revalidateIfStale: false,
@@ -40,41 +57,35 @@ export function AlertSheet({ open, onOpenChange }) {
         }
     );
 
+    const lastMessage = messages.slice(-1)[0];
+
+    useEffect(() => {
+        if (lastMessage) {
+            console.log(lastMessage)
+            setAlertas((prev) => [...prev, lastMessage])
+        }
+    }, [lastMessage]);
 
     useEffect(() => {
         if (!historicalData?.results) return;
         const newData = [];
+        console.log(historicalData)
 
         Object.keys(historicalData.results).forEach(key => {
             const result = historicalData.results[key];
-            newData.push(result);
-        });
-        setAlertas(newData);
-    }, [historicalData]);
-
-
-    useEffect(() => {
-
-        const alertasFiltradas = messages.filter((alert) => {
-            return alert.topic === "devices/alarms" && alert.process === false
-        })
-
-
-        const newAlertas = []
-        alertasFiltradas?.map((alert) => {
             const newAlert = {
-                time: alert.timestamp,
-                message: alert.payload.message,
-                value: alert.payload.value,
-                unit: alert.payload.ud,
-                measurement: alert.payload.magnitude,
+                topic: "devices/alarms",
+                message: result,
+                timestamp: result.time
             }
-            newAlertas.push(newAlert)
-        })
+            console.log(newAlert)
+            newData.push(newAlert);
+        });
 
-        setAlertas((prev) => [...newAlertas, ...prev])
+        setAlertas((prev) => [...prev, ...newData]);
+    }, [historicalData])
 
-    }, [messages])
+
 
     const getAlertIcon = (severity) => {
         switch (severity) {
@@ -129,17 +140,18 @@ export function AlertSheet({ open, onOpenChange }) {
                 <div className="flex-1 overflow-auto">
                     <div className="p-4 space-y-4">
                         {alertas?.map((alert) => (
+                            console.log(alert),
                             <div
-                                key={alert.time}
+                                key={alert.timestamp}
                                 className="flex items-center gap-4 p-4 rounded-3xl border cursor-pointer hover:bg-muted/50 transition-colors"
                             >
                                 {getAlertIcon("warning")}
                                 <div className="flex-1">
-                                    <h4 className="font-medium">{alert.message} - {alert.value} {alert.ud}</h4>
+                                    <h4 className="font-medium">{alert.message.message} - {alert.message.value} {alert.message.ud}</h4>
                                     <p className="text-sm text-muted-foreground">Se ha procedido a parar el experimento</p>
-                                    <Badge className={`${getAlertColor("neutral")} rounded-3xl`}>{formatDateWithFormat(alert.time, 'dd.mm.yyyy HH:ii')}</Badge>
+                                    <Badge className={`${getAlertColor("neutral")} rounded-3xl`}>{formatDateWithFormat(alert.timestamp, 'dd.mm.yyyy HH:ii')}</Badge>
                                 </div>
-                                <Badge className={`${getAlertColor("warning")} rounded-3xl`}>{getMagnitude(alert.measurement)}</Badge>
+                                <Badge className={`${getAlertColor("warning")} rounded-3xl`}>{getMagnitude(alert.message.magnitude || alert.message.measurement)}</Badge>
                             </div>
                         ))}
                     </div>

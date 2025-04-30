@@ -8,50 +8,49 @@ import { Badge } from "@/components/ui/badge"
 
 export function DataTermopar() {
 
-    const { messages } = useMQTT()
+    const topicGetData = `devices/data`
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+    const [isLoading, setIsLoading] = useState(true);
     const [intensidad, setIntensidad] = useState(0)
     const [potencia, setPotencia] = useState(0)
     const [voltaje, setVoltaje] = useState(0)
     const [temperatura, setTemperatura] = useState(0)
 
-    const processedMessagesRef = useRef(new Set());
+    useEffect(() => {
+        if (isConnected) {
+            subscribe(topicGetData);
+
+            return () => {
+                unsubscribe(topicGetData);
+            }
+        } else {
+            setIsLoading(true);
+            setInfoMsg("Conectando al sistema...");
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetData]);
+
+    const lastMessageTemperature = messages.findLast(msg => msg.message.magnitude === "temperature_tc");
+    const lastMessageAmperage = messages.findLast(msg => msg.message.magnitude === "amperage_tc");
 
     useEffect(() => {
-        console.log(messages)
-        if (!messages || messages.length === 0) return;
+        if (lastMessageTemperature) {
+            const newValue = lastMessageTemperature.message.value;
+            setTemperatura(`${newValue} ${lastMessageTemperature.message.ud}`)
+        }
+    }, [lastMessageTemperature])
 
-        const relevantMessages = messages.filter(msg =>
-            (msg?.payload?.magnitude === "amperage_tc" || msg?.payload?.magnitude === "temperature_tc") &&
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
+    useEffect(() => {
+        if (lastMessageAmperage) {
+            const newValue = lastMessageAmperage.message.value;
+            const voltage = 24
+            const potenciaValue = (newValue * voltage).toFixed(2)
+            setIntensidad(`${newValue} ${lastMessageAmperage.message.ud}`)
+            setVoltaje(`${voltage} V`)
+            setPotencia(`${potenciaValue} w`)
+        }
+    }, [lastMessageAmperage])
 
-        if (relevantMessages.length === 0) return;
-
-        relevantMessages.forEach(msg => {
-
-            const value = msg.payload.value;
-            switch (msg?.payload?.magnitude) {
-                case "amperage_tc":
-                    const voltage = 24
-                    const potenciaValue = (value * voltage).toFixed(2)
-                    setIntensidad(`${value} ${msg.payload.ud}`)
-                    setVoltaje(`${voltage} V`)
-                    setPotencia(`${potenciaValue} w`)
-                    break;
-                case "temperature_tc":
-                    setTemperatura(`${value} ${msg.payload.ud}`)
-                    break;
-
-                default:
-                    break;
-            }
-
-
-
-        });
-
-
-    }, [messages]);
 
     return (
         <section className='m-panel__section'>

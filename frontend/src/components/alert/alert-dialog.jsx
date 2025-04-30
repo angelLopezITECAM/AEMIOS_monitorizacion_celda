@@ -11,31 +11,41 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+
 import { useMQTT } from "@/context/mqtt-context";
 import { useEffect, useState } from "react"
 
 export function AlertDialog() {
-    const { messages, markAlarmAsProcessed } = useMQTT();
+    const topicGetAlarms = `devices/alarms`;
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+    const [isLoading, setIsLoading] = useState(true);
+
     const [open, setOpen] = useState(false);
-    const [currentAlarm, setCurrentAlarm] = useState(null);
 
     useEffect(() => {
-        const alarmas = messages.filter((alert) => {
-            return alert.topic === "devices/alarms" && alert.process === false
-        })
+        if (isConnected) {
+            subscribe(topicGetAlarms);
 
-        if (alarmas.length > 0) {
-            setCurrentAlarm(alarmas[0]);
+            return () => {
+                unsubscribe(topicGetAlarms);
+            }
+        } else {
+            setIsLoading(false);
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetAlarms]);
+
+    const lastMessage = messages.slice(-1)[0];
+    console.log(lastMessage)
+
+    useEffect(() => {
+        if (lastMessage) {
             setOpen(true)
         }
-    }, [messages])
+    }, [lastMessage]);
+
 
     const handleClose = () => {
-        if (currentAlarm) {
-            markAlarmAsProcessed(currentAlarm);
-        }
         setOpen(false);
     };
 

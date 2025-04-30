@@ -10,9 +10,9 @@ COPY . /api
 
 # Instalar las dependencias del proyecto
 RUN uv sync 
-# Exponer el puerto 8000 para FastAPI
+# Exponer el puerto 8002 para FastAPI
 EXPOSE 8002
 # Comando para ejecutar la aplicacion FastAPI usando Uvicorn
 #CMD ["cron", "-f"]
-#CMD ["sh", "-c", "cd ..; uv run uvicorn api.main:app --host 0.0.0.0 --port 8000"]
+#CMD ["sh", "-c", "cd ..; uv run uvicorn api.main:app --host 0.0.0.0 --port 8002"]
 CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]

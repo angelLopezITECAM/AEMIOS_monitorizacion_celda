@@ -20,7 +20,7 @@ import { setupCamera, focusCameraOnMesh } from '@/services/babylon/camera';
 import { setupScene } from '@/services/babylon/scene';
 import '@/assets/panel.css'
 import { PanelControl } from './components/panel-control';
-import { MQTTProvider } from "@/context/mqtt-context";
+import { MqttProvider } from "@/context/mqtt-context";
 
 const partesCelda = [
     {
@@ -305,7 +305,7 @@ const BabylonScene = () => {
         }
     }, [uiConfig]);
 
-    return <MQTTProvider><PanelControl canvasRef={canvasRef} /></MQTTProvider>;
+    return <MqttProvider><PanelControl canvasRef={canvasRef} /></MqttProvider>;
 };
 
 export default BabylonScene;

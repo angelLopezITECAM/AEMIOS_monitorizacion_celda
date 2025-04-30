@@ -21,10 +21,10 @@ export const TIME_FILTER_OPTIONS = {
 
 // Etiquetas legibles para los filtros
 export const TIME_FILTER_LABELS = {
-    [TIME_FILTER_OPTIONS.LAST_WEEK]: "Último minuto",
-    [TIME_FILTER_OPTIONS.LAST_3_MONTHS]: "Últimos 15 minutos",
-    [TIME_FILTER_OPTIONS.LAST_6_MONTHS]: "Últimos 30 minutos",
-    [TIME_FILTER_OPTIONS.LAST_12_MONTHS]: "Última hora",
+    [TIME_FILTER_OPTIONS.LAST_WEEK]: "Última hora",
+    [TIME_FILTER_OPTIONS.LAST_3_MONTHS]: "Últimas 6 horas",
+    [TIME_FILTER_OPTIONS.LAST_6_MONTHS]: "Últimas 12 horas",
+    [TIME_FILTER_OPTIONS.LAST_12_MONTHS]: "Últimas 24 horas",
 };
 
 // Crear el contexto
@@ -49,23 +49,23 @@ export function TimeFilterProvider({ children }) {
         switch (activeFilter) {
             case TIME_FILTER_OPTIONS.LAST_WEEK:
                 /* startDate.setDate(now.getDate() - 7); */
-                startDate.setMinutes(now.getMinutes() - 1);
+                startDate.setHours(now.getHours() - 1);
                 break;
             case TIME_FILTER_OPTIONS.LAST_3_MONTHS:
                 /* startDate.setMonth(now.getMonth() - 3); */
-                startDate.setMinutes(now.getMinutes() - 15);
+                startDate.setHours(now.getHours() - 6);
                 break;
             case TIME_FILTER_OPTIONS.LAST_6_MONTHS:
                 /* startDate.setMonth(now.getMonth() - 6); */
-                startDate.setMinutes(now.getMinutes() - 30);
+                startDate.setHours(now.getHours() - 12);
                 break;
             case TIME_FILTER_OPTIONS.LAST_12_MONTHS:
                 /* startDate.setMonth(now.getMonth() - 12); */
-                startDate.setHours(now.getHours() - 1);
+                startDate.setHours(now.getHours() - 24);
                 break;
             default:
                 /* startDate.setDate(now.getDate() - 7); */
-                startDate.setMinutes(now.getMinutes() - 1);
+                startDate.setHours(now.getHours() - 24);
         }
 
         return {

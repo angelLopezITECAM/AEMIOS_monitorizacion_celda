@@ -8,37 +8,41 @@ import { Badge } from "@/components/ui/badge"
 
 export function DataBombas() {
 
-    const { messages } = useMQTT()
+    const topicGetData = `devices/data`
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+    const [isLoading, setIsLoading] = useState(true);
     const [intensidad, setIntensidad] = useState(0)
     const [potencia, setPotencia] = useState(0)
     const [voltaje, setVoltaje] = useState(0)
 
-    const processedMessagesRef = useRef(new Set());
+    useEffect(() => {
+        if (isConnected) {
+            subscribe(topicGetData);
+
+            return () => {
+                unsubscribe(topicGetData);
+            }
+        } else {
+            setIsLoading(true);
+            setInfoMsg("Conectando al sistema...");
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetData]);
+
+    const lastMessage = messages.findLast(msg => msg.message.magnitude === "amperage_pumps");
 
     useEffect(() => {
-        console.log(messages)
-        if (!messages || messages.length === 0) return;
-
-        const relevantMessages = messages.filter(msg =>
-            msg?.payload?.magnitude === "amperage_pumps" &&
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
-
-        if (relevantMessages.length === 0) return;
-
-        relevantMessages.forEach(msg => {
-
-            const value = msg.payload.value;
+        if (lastMessage) {
+            const newValue = lastMessage.message.value;
             const voltage = 24
-            const potenciaValue = (value * voltage).toFixed(2)
-            setIntensidad(`${value} ${msg.payload.ud}`)
+            const potenciaValue = (newValue * voltage).toFixed(2)
+            setIntensidad(`${newValue} ${lastMessage.message.ud}`)
             setVoltaje(`${voltage} V`)
             setPotencia(`${potenciaValue} w`)
+        }
+    }, [lastMessage])
 
-        });
 
-
-    }, [messages]);
 
     return (
         <section className='m-panel__section'>

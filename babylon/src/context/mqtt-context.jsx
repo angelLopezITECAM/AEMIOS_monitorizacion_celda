@@ -1,175 +1,241 @@
-import { createContext, useState, useContext, useEffect, useCallback } from "react"
-import mqtt from "mqtt";
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import mqtt from 'mqtt';
 
-const MQTTContext = createContext()
+const MqttContext = createContext();
 
-export const MQTTProvider = ({ children }) => {
-    const [socket, setSocket] = useState(null);
+export const useMQTT = () => {
+    const context = useContext(MqttContext);
+    if (!context) throw new Error('useMQTT must be used within a MqttProvider');
+    return context;
+}
+
+export const MqttProvider = ({ children }) => {
+    const [client, setClient] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState([]);
-    const [error, setError] = useState(null);
-    const [reconnectAttempts, setReconnectAttempts] = useState(0);
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const RECONNECT_INTERVAL = 5000;
+    const pingIntervalRef = useRef(null);
+    const connectionTimeoutRef = useRef(null);
+    const manualReconnectTimeoutRef = useRef(null);
+    const activeSubscriptionsRef = useRef(new Set());
+    const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-    // Esta función debe estar fuera, no dentro de connectWebSocket
-    const sendMessage = useCallback((topic, message) => {
-        return new Promise((resolve, reject) => {
-            console.log("=== Iniciando envío de mensaje ===");
-            console.log("Socket:", socket);
-            console.log("Estado del socket:", socket?.readyState);
-            console.log("Topic:", topic);
-            console.log("Message:", message);
+    const setupMqttConnection = () => {
 
-            if (!socket) {
-                const error = new Error("No hay conexión WebSocket disponible");
-                console.error(error);
-                reject(error);
-                return;
+        if (client) {
+            try {
+                client.end(true);
+            } catch (e) {
+                console.warn('Error al cerrar el cliente MQTT existente:', e);
             }
-
-            let attempts = 0;
-            const maxAttempts = 5;
-            const attemptInterval = 1000;
-
-            const tryToSend = () => {
-                console.log(`Intento ${attempts + 1}/${maxAttempts}`);
-
-                if (socket.readyState === WebSocket.OPEN) {
-                    try {
-                        const payload = JSON.stringify({ topic, message });
-                        console.log("Enviando payload:", payload);
-                        socket.send(payload);
-                        console.log("Mensaje enviado correctamente");
-                        resolve(true);
-                    } catch (error) {
-                        console.error("Error al enviar el mensaje:", error);
-                        reject(error);
-                    }
-                } else {
-                    attempts++;
-                    if (attempts >= maxAttempts) {
-                        const error = new Error(`WebSocket no está listo después de ${maxAttempts} intentos`);
-                        console.error(error);
-                        reject(error);
-                    } else {
-                        console.log(`Socket no está listo (estado: ${socket.readyState}), reintentando en ${attemptInterval}ms...`);
-                        setTimeout(tryToSend, attemptInterval);
-                    }
-                }
-            };
-
-            tryToSend();
-        });
-    }, [socket]);
-
-    const connectWebSocket = useCallback(() => {
-        try {
-            console.log("=== Iniciando conexión WebSocket ===");
-            const ws = new WebSocket("ws://192.168.15.109:8002/api/mqtt/ws");
-
-            ws.onopen = () => {
-                console.log("Conexión WebSocket establecida");
-                console.log("Estado del socket:", ws.readyState);
-                setIsConnected(true);
-                setError(null);
-                setReconnectAttempts(0); // Resetear intentos de reconexión
-            }
-
-            ws.onmessage = (event) => {
-                try {
-                    let data = JSON.parse(event.data);
-                    console.log("Mensaje recibido en WebSocket:", data);
-
-                    // Asegurarnos de que el mensaje tenga la estructura correcta
-                    if (data && typeof data === 'object') {
-                        // Marcar el mensaje como no procesado si no tiene la bandera
-                        if (data.process === undefined) {
-                            data.process = false;
-                        }
-
-                        // Actualizar el estado de los mensajes
-                        setMessages(prev => {
-                            // Limitar a los últimos 100 mensajes para evitar problemas de memoria
-                            const newMessages = [...prev, data].slice(-100);
-                            return newMessages;
-                        });
-                    } else {
-                        console.warn("Mensaje recibido con formato incorrecto:", data);
-                    }
-                } catch (error) {
-                    console.error("Error al parsear el mensaje:", error);
-                }
-            }
-
-            ws.onerror = (error) => {
-                console.error("Error en WebSocket:", error);
-                setError("Error en la conexión WebSocket");
-                setIsConnected(false);
-            }
-
-            ws.onclose = () => {
-                console.log("Conexión WebSocket cerrada");
-                setIsConnected(false);
-
-                // Intentar reconectar si no hemos excedido el número máximo de intentos
-                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    setReconnectAttempts(prev => prev + 1);
-                    console.log(`Intentando reconectar (intento ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-                    setTimeout(() => {
-                        connectWebSocket();
-                    }, RECONNECT_INTERVAL);
-                } else {
-                    console.error("Se excedió el número máximo de intentos de reconexión");
-                    setError("No se pudo establecer la conexión después de múltiples intentos");
-                }
-            }
-
-            setSocket(ws);
-            console.log("Socket configurado:", ws);
-
-            return () => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    console.log("Cerrando conexión WebSocket");
-                    ws.close();
-                }
-            }
-        } catch (e) {
-            console.error("Error al conectar WebSocket:", e);
-            setError("No se pudo establecer la conexión WebSocket");
-            return null;
         }
-    }, [reconnectAttempts]);
+
+        console.log(`Conectando al broker MQTT (intento ${connectionAttempts + 1})...`);
+
+        const mqttClient = mqtt.connect('ws://192.168.15.38:9001', {
+            keepalive: 30,
+            reconnectPeriod: 3000,
+            connectTimeout: 5000,
+            clean: true,
+            clientId: 'web-client-' + Math.random().toString(16).substr(2, 8),
+            will: {
+                topic: 'clients/webapp',
+                payload: JSON.stringify({ status: 'disconnected', timestamp: new Date().toISOString() }),
+                qos: 1,
+                retain: false
+            }
+        });
+
+        setClient(mqttClient);
+
+        mqttClient.on('connect', () => {
+            console.log('Conectado al broker MQTT');
+            setIsConnected(true);
+            setConnectionAttempts(0);
+
+            // Re-suscribir a todos los tópicos activos
+            activeSubscriptionsRef.current.forEach(topic => {
+                mqttClient.subscribe(topic, (err) => {
+                    if (err) console.error(`Error al re-suscribir a ${topic}:`, err);
+                    else console.log(`Re-suscrito a ${topic}`);
+                });
+            });
+
+            // Configurar un ping para mantener la conexión viva
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = setInterval(() => {
+                if (mqttClient.connected) {
+                    mqttClient.publish('clients/webapp/ping', JSON.stringify({
+                        timestamp: new Date().toISOString()
+                    }), { qos: 0, retain: false });
+
+                }
+            }, 25000); // menos que el keepalive
+
+
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current);
+                connectionTimeoutRef.current = null;
+            }
+            if (manualReconnectTimeoutRef.current) {
+                clearTimeout(manualReconnectTimeoutRef.current);
+                manualReconnectTimeoutRef.current = null;
+            }
+        });
+
+        mqttClient.on('reconnect', () => {
+            console.log('Reconectando al broker MQTT...');
+            setIsConnected(false);
+        });
+
+        mqttClient.on('close', () => {
+            console.log('Conexión cerrada con el broker MQTT');
+            setIsConnected(false);
+
+            // Configurar una reconexión manual si la reconexión automática del cliente falla
+            if (manualReconnectTimeoutRef.current) clearTimeout(manualReconnectTimeoutRef.current);
+            manualReconnectTimeoutRef.current = setTimeout(() => {
+                console.log('Intentando reconexión manual después de 5 segundos...');
+                setConnectionAttempts(prev => prev + 1);
+                setupMqttConnection();
+            }, 5000);
+        });
+
+        mqttClient.on('error', (error) => {
+            console.error('Error en la conexión MQTT:', error);
+            setIsConnected(false);
+
+            // No es necesario iniciar una reconexión manual aquí, ya que el evento 'close' se disparará
+        });
+
+        mqttClient.on('message', (topic, payload) => {
+            try {
+                const msgString = payload.toString();
+                setMessages(prev => {
+                    // Limitar a los últimos 100 mensajes para evitar problemas de memoria
+                    const newMessages = [...prev, { topic, message: JSON.parse(msgString), timestamp: Date.now() }];
+                    if (newMessages.length > 100) {
+                        return newMessages.slice(-100);
+                    }
+                    return newMessages;
+                });
+            } catch (e) {
+                console.error('Error al procesar mensaje MQTT:', e);
+            }
+        });
+    };
 
     useEffect(() => {
-        console.log("=== Iniciando efecto de conexión WebSocket ===");
-        const cleanup = connectWebSocket();
+        setupMqttConnection();
+
 
         return () => {
-            console.log("Limpiando conexión WebSocket");
-            if (cleanup) cleanup();
+            if (client) {
+                try {
+                    console.log('Limpiando cliente MQTT');
+                    client.end(true);
+                } catch (e) {
+                    console.warn('Error durante la limpieza:', e);
+                }
+            }
+
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+            if (manualReconnectTimeoutRef.current) clearTimeout(manualReconnectTimeoutRef.current);
+
+            setClient(null);
+            setIsConnected(false);
         };
-    }, [connectWebSocket]);
+    }, []);
+
+    const publish = (topic, message, timeout = 2500) => {
+        return new Promise((resolve, reject) => {
+            const start = Date.now();
+
+            function tryPublish() {
+                if (!client) {
+                    reject(new Error('No hay cliente MQTT disponible'));
+                    return;
+                }
+
+                if (client.connected) {
+                    try {
+                        client.publish(topic, message, { qos: 1 }, (err) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(true);
+                            }
+                        });
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    if (Date.now() - start > timeout) {
+                        reject(new Error('Timeout esperando conexión MQTT'));
+                    } else {
+                        setTimeout(tryPublish, 1000); // Reintenta cada 100ms
+                    }
+                }
+            }
+
+            tryPublish();
+        });
+    };
+
+    const subscribe = (topic, subOptions = { qos: 0 }) => {
+        if (client && client.connected) {
+            client.subscribe(topic, subOptions, (err) => {
+                if (err) {
+                    console.error(`(Provider) Error al suscribir a ${topic}:`, err);
+                } else {
+                    console.log(`(Provider) Suscrito a ${topic}`);
+                    activeSubscriptionsRef.current.add(topic);
+                }
+            });
+        } else {
+            console.warn(`(Provider) No conectado, no se puede suscribir a ${topic}.`);
+            // Guardar la suscripción para intentarlo más tarde
+            activeSubscriptionsRef.current.add(topic);
+        }
+    };
+
+    const unsubscribe = (topic) => {
+        if (client && client.connected) {
+            client.unsubscribe(topic, (err) => {
+                if (err) {
+                    console.error(`(Provider) Error al desuscribir de ${topic}:`, err);
+                } else {
+                    console.log(`(Provider) Desuscrito de ${topic}`);
+                    activeSubscriptionsRef.current.delete(topic);
+                }
+            });
+        } else {
+            console.warn(`(Provider) No conectado, no se puede desuscribir de ${topic}.`);
+            // Eliminar de las suscripciones pendientes
+            activeSubscriptionsRef.current.delete(topic);
+        }
+    };
+
+    const reconnect = () => {
+        console.log('Forzando reconexión manual...');
+        setConnectionAttempts(prev => prev + 1);
+        setupMqttConnection();
+    };
 
     const value = {
+        client,
         isConnected,
         messages,
-        error,
-        sendMessage,
-        reconnect: connectWebSocket
+        publish,
+        subscribe,
+        unsubscribe,
+        reconnect, // Exponer la función de reconexión manual
     };
 
     return (
-        <MQTTContext.Provider value={value}>
+        <MqttContext.Provider value={value}>
             {children}
-        </MQTTContext.Provider>
-    )
-};
-
-export const useMQTT = () => {
-    const context = useContext(MQTTContext)
-    if (!context) {
-        throw new Error("useMQTT must be used within a MQTTProvider")
-    }
-    return context
+        </MqttContext.Provider>
+    );
 }
+

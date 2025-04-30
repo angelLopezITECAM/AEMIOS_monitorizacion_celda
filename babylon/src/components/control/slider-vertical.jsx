@@ -8,180 +8,102 @@ import { useMQTT } from "@/context/mqtt-context"
 import useDebounce from "@/hooks/useDebounce"
 
 export function SliderVertical({ item }) {
-    const { messages, isConnected, sendMessage, error: mqttError } = useMQTT();
     const { title, defaultValue, min, max, step, id, magnitude, idElement } = item;
+    const topicGetStatus = `devices/status`;
+    const topicSetStatus = `devices/play`;
+    console.log(magnitude)
 
+    const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
+
+    const [isLoading, setIsLoading] = useState(true);
     const [value, setValue] = useState(defaultValue);
-    const [lastSentValue, setLastSentValue] = useState(defaultValue);
-    const [isLoading, setIsLoading] = useState(true); // Iniciar como cargando
-    const [error, setError] = useState(null);
-    const [initialValueReceived, setInitialValueReceived] = useState(false);
+    const [infoMsg, setInfoMsg] = useState("Esperando estado inicial del sistema...");
+    const [errorMsg, setErrorMsg] = useState("");
 
-    // Nueva ref para el timeout de confirmación
+    const valueBeforeToggle = useRef(defaultValue);
     const confirmationTimeoutRef = useRef(null);
-    // Agregar una ref para el valor que está pendiente de confirmación
-    const pendingValueRef = useRef(null);
-    // Tiempo de espera para la confirmación en ms
-    const CONFIRMATION_TIMEOUT = 10000;
 
-    // Referencia para rastrear mensajes ya procesados
-    const processedMessagesRef = useRef(new Set());
-
-    const timeDebounce = 1000;
-
-    // Función para obtener el valor numérico desde diferentes formatos
-    const getValue = (rawValue) => {
-        if (typeof rawValue === 'number') return rawValue;
-        if (typeof rawValue === 'string') {
-            const numValue = parseFloat(rawValue);
-            return isNaN(numValue) ? defaultValue : numValue;
+    const debouncedPublish = useDebounce((newValue) => {
+        if (isLoading) return;
+        if (confirmationTimeoutRef.current) {
+            clearTimeout(confirmationTimeoutRef.current);
+            confirmationTimeoutRef.current = null;
         }
-        return defaultValue;
-    };
+        valueBeforeToggle.current = newValue;
+        setIsLoading(true);
+        setInfoMsg("Esperando confirmación del sistema...");
+        setErrorMsg("");
+        const msgSetStatus = { "element": id, "action": newValue.toString(), "ud": "pwm " }
 
-    // Procesar mensajes entrantes
+        publish(topicSetStatus, JSON.stringify(msgSetStatus))
+            .catch(() => {
+                setErrorMsg("No se pudo cambiar el valor. Inténtalo de nuevo.");
+                setInfoMsg("");
+                setValue(valueBeforeToggle.current);
+                setIsLoading(false);
+            });
+
+        confirmationTimeoutRef.current = setTimeout(() => {
+            if (isLoading) {
+                setValue(valueBeforeToggle.current);
+                setIsLoading(false);
+                confirmationTimeoutRef.current = null;
+                setInfoMsg("");
+                setErrorMsg("No se recibió confirmación del sistema.");
+            }
+        }, 5000);
+    }, 1000);
+
     useEffect(() => {
-        console.log(messages)
-        if (!messages || messages.length === 0) return;
+        if (isConnected) {
+            subscribe(topicGetStatus);
 
-        // Filtrar solo mensajes relevantes para este slider y no procesados
-        const relevantMessages = messages.filter(msg =>
-            (msg?.payload?.magnitude === magnitude || msg?.payload?.magnitude === id) && // Comprobar si el mensaje es para este elemento
-            !processedMessagesRef.current.has(msg.timestamp)
-        );
-
-        if (relevantMessages.length === 0) return;
-
-        // Procesar los mensajes
-        relevantMessages.forEach(msg => {
-            // Marcar como procesado para evitar duplicados
-            processedMessagesRef.current.add(msg.timestamp);
-
-            if (msg.payload && msg.payload.value !== undefined) {
-                const newValue = getValue(msg.payload.value);
-
-                // Asegurar que el valor está dentro de los límites
-                const boundedValue = Math.max(min, Math.min(max, newValue));
-
-                console.log(`Actualizando slider ${id} con valor:`, boundedValue);
-
-                // Comprobar si este mensaje es una confirmación de una acción pendiente
-
-                if (pendingValueRef.current !== null) {
-                    // Si el valor recibido es igual al pendiente, confirmamos la acción
-                    if (Math.abs(boundedValue - pendingValueRef.current) < 0.001) {
-                        console.log(`Confirmación recibida para slider ${id}`);
-                        // Limpiar el timeout de confirmación
-                        if (confirmationTimeoutRef.current) {
-                            clearTimeout(confirmationTimeoutRef.current);
-                            confirmationTimeoutRef.current = null;
-                        }
-                        pendingValueRef.current = null;
-                        setIsLoading(false);
-                        setLastSentValue(boundedValue);
-                    } else {
-                        // Si el valor es diferente, actualizamos al valor recibido del servidor
-                        console.log(`Valor recibido distinto al solicitado para slider ${id}`);
-                        setValue(boundedValue);
-                        setLastSentValue(boundedValue);
-                        pendingValueRef.current = null;
-                        setIsLoading(false);
-                    }
-                } else {
-                    // Mensaje normal de actualización
-                    setValue(boundedValue);
-                    setLastSentValue(boundedValue);
-                }
-
-                // Marcar que ya recibimos el valor inicial y desbloquear el control
-                if (!initialValueReceived) {
-                    setInitialValueReceived(true);
-                    setIsLoading(false);
-                    console.log(`Slider ${id} inicializado con valor ${boundedValue}`);
-                }
-            } else if (msg.payload && msg.payload.status !== undefined) {
-                // Procesar mensaje de estado (si existe)
-                if (msg.payload.status === 'error' && pendingValueRef.current !== null) {
-                    // Error en la acción, revertir al valor anterior
-                    console.error(`Error en acción para slider ${id}`);
-                    setValue(lastSentValue);
-                    pendingValueRef.current = null;
-                    setError("Error en la acción");
-                    setIsLoading(false);
-
-                    // Limpiar timeout
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                        confirmationTimeoutRef.current = null;
-                    }
-                }
+            return () => {
+                unsubscribe(topicGetStatus);
             }
-        });
-    }, [messages, id, magnitude, min, max, defaultValue, initialValueReceived, lastSentValue]);
+        } else {
+            setIsLoading(true);
+            setInfoMsg("Conectando al sistema...");
+            console.log("No se está conectado al broker");
+        }
+    }, [isConnected, topicGetStatus]);
 
-    const debouncedSend = useCallback(
-        useDebounce(async (valueToSend) => {
-            // Solo enviar si es diferente y ya hemos recibido el valor inicial
-            if (valueToSend !== lastSentValue && isConnected && initialValueReceived) {
-                setIsLoading(true);
-                setError(null);
+    const lastMessage = messages.findLast(msg => msg.message.magnitude === magnitude);
 
-                try {
-                    const msg = {
-                        element: id,
-                        action: valueToSend.toString(),
-                        ud: "pwm"
-                    }
-                    const topic = "devices/play";
-                    console.log(`Enviando valor ${valueToSend} a ${topic}`);
+    useEffect(() => {
+        if (lastMessage) {
+            const newValue = lastMessage.message.value;
+            const confirmedValue = (typeof newValue === 'string') ? newValue : null;
+            console.log(confirmedValue)
 
-                    // Guardar el valor pendiente de confirmación
-                    pendingValueRef.current = valueToSend;
-
-                    // Establecer timeout para revertir si no hay confirmación
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                    }
-
-                    confirmationTimeoutRef.current = setTimeout(() => {
-                        console.log(`Timeout de confirmación para slider ${id}`);
-                        if (pendingValueRef.current !== null) {
-                            // Si aún hay un valor pendiente, revertir
-                            setValue(lastSentValue);
-                            pendingValueRef.current = null;
-                            setError("No se recibió confirmación");
-                            setIsLoading(false);
-                        }
-                    }, CONFIRMATION_TIMEOUT);
-
-                    const success = await sendMessage(topic, msg);
-
-                    if (!success) {
-                        throw new Error("No se pudo enviar el mensaje");
-                    }
-
-                    // No actualizamos lastSentValue aquí, esperamos confirmación
-
-                } catch (err) {
-                    console.error("Error al enviar mensaje:", err);
-                    setError(err.message || "Error de comunicación");
-                    setValue(lastSentValue);
-                    pendingValueRef.current = null;
-
-                    // Limpiar timeout
-                    if (confirmationTimeoutRef.current) {
-                        clearTimeout(confirmationTimeoutRef.current);
-                        confirmationTimeoutRef.current = null;
-                    }
-
-                    setIsLoading(false);
-                }
+            if (confirmationTimeoutRef.current) {
+                clearTimeout(confirmationTimeoutRef.current);
+                confirmationTimeoutRef.current = null;
             }
-        }, timeDebounce),
-        [id, sendMessage, lastSentValue, isConnected, initialValueReceived]
-    );
 
-    // Limpiar timeouts cuando el componente se desmonte
+            setValue(confirmedValue);
+            setIsLoading(false);
+            setInfoMsg("");
+            setErrorMsg("");
+        }
+    }, [lastMessage]);
+
+    const handleChange = (newValue) => {
+        if (!isNaN(newValue) && newValue >= min && newValue <= max) {
+            setValue(newValue);
+            debouncedPublish(newValue);
+        }
+    }
+
+    const handleInputChange = (e) => {
+        const newValue = Number(e.target.value);
+        handleChange(newValue);
+    }
+    const handleSliderChange = (value) => {
+        const newValue = Number(value[0]);
+        handleChange(newValue);
+    }
+
     useEffect(() => {
         return () => {
             if (confirmationTimeoutRef.current) {
@@ -190,50 +112,24 @@ export function SliderVertical({ item }) {
         };
     }, []);
 
-    // Manejar errores del contexto MQTT
-    useEffect(() => {
-        if (mqttError) {
-            setError(mqttError);
-            setValue(lastSentValue);
-        }
-    }, [mqttError, lastSentValue]);
-
-    // Enviar cambios cuando cambia el valor
-    useEffect(() => {
-        if (isConnected && !isLoading && initialValueReceived) {
-            debouncedSend(value);
-        }
-    }, [value, debouncedSend, isConnected, isLoading, initialValueReceived]);
-
-    const handleSliderChange = (newValue) => {
-        // Solo permitir cambios si no está cargando y ya recibimos el valor inicial
-        if (!isLoading && initialValueReceived) {
-            setValue(newValue[0]);
-        }
-    };
-
-    const handleInputChange = (e) => {
-        // Solo permitir cambios si no está cargando y ya recibimos el valor inicial
-        if (!isLoading && initialValueReceived) {
-            const newValue = Number(e.target.value);
-            if (!isNaN(newValue) && newValue >= min && newValue <= max) {
-                setValue(newValue);
-            }
-        }
-    };
-
     return (
         <>
             <div className="my-4 relative">
 
-                <div className="flex items-center justify-between mb-4 flex-column">
+                <div className="flex items-center justify-between mb-4">
                     <Label
                         htmlFor={`${title}-slider`}
-                        className={error ? "text-red-500" : ""}
                     >
                         {title}
+                        {(infoMsg || errorMsg) && (
+                            <div className={`mt-2 text-xs ${errorMsg ? 'text-red-500' : 'text-blue-500'}`}>
+                                {errorMsg || infoMsg}
+                            </div>
+                        )}
+
 
                     </Label>
+
                     <div className="relative">
                         {isLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded">
@@ -245,14 +141,16 @@ export function SliderVertical({ item }) {
                             type="number"
                             value={value}
                             onChange={handleInputChange}
-                            className={`w-12 text-right ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
+                            className={`w-20 text-right ${isLoading ? 'opacity-70' : ''}`}
                             min={min}
                             max={max}
                             step={step}
-                            disabled={isLoading || !initialValueReceived}
+                            disabled={isLoading}
                         />
                     </div>
+
                 </div>
+
 
                 <div className="flex flex-col items-center">
                     <span className="text-sm text-muted-foreground mb-2">{max}</span>
@@ -272,21 +170,16 @@ export function SliderVertical({ item }) {
                             value={[value]}
                             onValueChange={handleSliderChange}
                             orientation="vertical"
-                            className={`h-40 ${isLoading || !initialValueReceived ? 'opacity-70' : ''} ${error ? 'border-red-500' : ''}`}
-                            disabled={isLoading || !initialValueReceived}
+                            className={`h-40 ${isLoading ? 'opacity-70' : ''}`}
+                            disabled={isLoading}
                         />
                     </div>
                     <span className="text-sm text-muted-foreground mt-2">{min}</span>
                 </div>
+
+
             </div>
 
-            {
-                error && (
-                    <Badge variant="destructive" className="mr-2 my-2">
-                        {error}
-                    </Badge>
-                )
-            }
         </>
     );
 }

@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Loader2, AlertCircle } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMQTT } from "@/context/mqtt-context"
-import { useDebounce } from "@/hooks/use-debounce"
+import useDebounce from "@/hooks/useDebounce"
 
-export function SliderVertical({ item }) {
+export function LimitApp({ item }) {
     const { title, defaultValue, min, max, step, id, magnitude, idElement } = item;
     const topicGetStatus = `devices/status`;
     const topicSetStatus = `devices/play`;
@@ -149,32 +149,6 @@ export function SliderVertical({ item }) {
                         />
                     </div>
 
-                </div>
-
-
-                <div className="flex flex-col items-center">
-                    <span className="text-sm text-muted-foreground mb-2">{max}</span>
-                    <div className="relative h-40">
-                        {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center z-10">
-                                <div className="bg-background/50 p-2 rounded-full">
-                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                                </div>
-                            </div>
-                        )}
-                        <Slider
-                            id={`${title}-slider`}
-                            min={min}
-                            max={max}
-                            step={step}
-                            value={[value]}
-                            onValueChange={handleSliderChange}
-                            orientation="vertical"
-                            className={`h-40 ${isLoading ? 'opacity-70' : ''}`}
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <span className="text-sm text-muted-foreground mt-2">{min}</span>
                 </div>
 
 

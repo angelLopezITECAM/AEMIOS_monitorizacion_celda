@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from "react"
+
 import { SwitchApp } from "@/components/control/switch"
 import { SliderVertical } from "@/components/control/slider-vertical"
+import { LimitApp } from "../components/control/limit";
 import { Title } from '@/components/ui/itecam/typography';
-import useSWR from "swr"
-import useSWRSubscription from 'swr/subscription'
-import { MQTTProvider, useMQTT } from "@/context/mqtt-context";
 
-// Componente interno que se comunica con MQTT
+import { MqttProvider, useMQTT } from "@/context/mqtt-context";
+
 function ControlPanel() {
-    const { isConnected, sendMessage } = useMQTT();
+    const { isConnected, publish } = useMQTT();
     const [initialMessageSent, setInitialMessageSent] = useState(false);
     const [error, setError] = useState(null);
 
-    // Efecto para enviar mensaje inicial cuando la conexión está lista
+
     useEffect(() => {
         const sendInitialMessage = async () => {
             if (isConnected && !initialMessageSent) {
-                console.log("=== Intentando enviar mensaje inicial ===");
+
                 try {
                     const initialMessage = {
                         element: "state",
@@ -24,9 +24,7 @@ function ControlPanel() {
                         ud: " "
                     };
 
-                    console.log("Enviando mensaje inicial:", initialMessage);
-                    const result = await sendMessage("devices/play", initialMessage);
-                    console.log("Resultado del envío:", result);
+                    const result = await publish("devices/play", JSON.stringify(initialMessage));
 
                     if (result) {
                         console.log("Mensaje inicial enviado con éxito");
@@ -36,7 +34,7 @@ function ControlPanel() {
                 } catch (err) {
                     console.error("Error al enviar mensaje inicial:", err);
                     setError(err.message);
-                    // Reintentar en 2 segundos
+
                     setTimeout(() => {
                         setInitialMessageSent(false);
                     }, 2000);
@@ -45,7 +43,7 @@ function ControlPanel() {
         };
 
         sendInitialMessage();
-    }, [isConnected, sendMessage, initialMessageSent]);
+    }, [isConnected, publish, initialMessageSent]);
 
     return (
         <div className="max-w-lg mx-auto">
@@ -81,6 +79,9 @@ function ControlPanel() {
                         ))
                     }
                 </div>
+                <LimitApp
+                    item={itemsLimit[0]}
+                />
             </div>
         </div>
     );
@@ -132,11 +133,24 @@ const itemsSwitch = [
     },
 ];
 
+const itemsLimit = [
+    {
+        id: "limit_temperature_tc",
+        title: "Límite temperatura (ºC)",
+        defaultValue: 20,
+        min: 0,
+        max: 100,
+        step: 1,
+        magnitude: "status_limit_temperature_tc",
+    },
+
+];
+
 // Componente principal que incluye el Provider
 export function PagePanelControl() {
     return (
-        <MQTTProvider>
+        <MqttProvider>
             <ControlPanel />
-        </MQTTProvider>
+        </MqttProvider>
     );
 }
