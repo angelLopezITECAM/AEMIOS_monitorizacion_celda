@@ -70,6 +70,7 @@ services:
   api:
     build:
       context: ./api
+    restart: unless-stopped
     container_name: api_aemios_mc_01
     ports:
       - "8002:8002"
