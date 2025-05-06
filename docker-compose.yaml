@@ -28,22 +28,22 @@ services:
     networks:
       - aemios-network
 
-  babylon:
-    build:
-      context: babylon
-      dockerfile: Dockerfile
-    container_name: babylon_aemios_mc_01
-    restart: unless-stopped
-    ports:
-      - "3003:3003"
-    volumes:
-      - ./babylon:/app
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    working_dir: /app
-    networks:
-      - aemios-network
+  #babylon:
+  #  build:
+  #    context: babylon
+  #    dockerfile: Dockerfile
+  #  container_name: babylon_aemios_mc_01
+  #  restart: unless-stopped
+  #  ports:
+  #    - "3003:3003"
+  #  volumes:
+  #    - ./babylon:/app
+  #    - /app/node_modules
+  #  environment:
+  #    - CHOKIDAR_USEPOLLING=true
+  #  working_dir: /app
+  #  networks:
+  #    - aemios-network
   
   influxdb:
     container_name: influxdb_aemios_mc_01
