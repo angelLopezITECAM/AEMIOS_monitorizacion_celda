@@ -24,3 +24,4 @@ telegraf:
 	docker compose rm -svf $(telegraf)
 	docker rmi $(contenedor_telegraf) 
 	make run
+	
