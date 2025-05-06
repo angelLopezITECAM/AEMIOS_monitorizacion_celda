@@ -23,12 +23,12 @@ export function CaudalBombasChart() {
     }
 
     const { data: historicalDataAnode, error: errorAnode, isLoading: isLoadingAnode } = useSWR(
-        `http://192.168.15.109:8002/api/influx/data/flow_anode?${timeFilter}`,
+        `http://192.168.15.151:8002/api/influx/data/flow_anode?${timeFilter}`,
         fetcher,
         configSWR
     )
     const { data: historicalDataCathode, error: errorCathode, isLoading: isLoadingCathode } = useSWR(
-        `http://192.168.15.109:8002/api/influx/data/flow_cathode?${timeFilter}`,
+        `http://192.168.15.151:8002/api/influx/data/flow_cathode?${timeFilter}`,
         fetcher,
         configSWR
     )

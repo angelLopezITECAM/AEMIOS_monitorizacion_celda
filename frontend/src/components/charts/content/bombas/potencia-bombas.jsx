@@ -24,7 +24,7 @@ export function PotenciaBombasChart() {
     }
 
     const { data: historicalData, error, isLoading } = useSWR(
-        `http://192.168.15.109:8002/api/influx/data/amperage_pumps?${timeFilter}`,
+        `http://192.168.15.151:8002/api/influx/data/amperage_pumps?${timeFilter}`,
         fetcher,
         configSWR
     )

@@ -22,7 +22,7 @@ export function TemperaturaTermoparChart() {
     }
 
     const { data: historicalData, error, isLoading } = useSWR(
-        `http://192.168.15.109:8002/api/influx/data/temperature_tc?${timeFilter}`,
+        `http://192.168.15.151:8002/api/influx/data/temperature_tc?${timeFilter}`,
         fetcher,
         configSWR
     )
