@@ -36,82 +36,25 @@ export function CaudalBombasChart() {
 
     useEffect(() => {
         // Solo proceder si tenemos datos
-        if (!historicalDataAnode?.results || !historicalDataCathode?.results) {
-            // Opcionalmente, limpiar datos del gráfico o establecer un estado vacío por defecto si es necesario
-            // setChartData({ anodeData: [], cathodeData: [], timeLabels: [] });
-            return;
+        if (!historicalDataAnode?.results || !historicalDataCathode?.results) return;
+
+        const anodeData = parseDataInflux(historicalDataAnode.results);
+        const cathodeData = parseDataInflux(historicalDataCathode.results);
+
+        // Procesar etiquetas de tiempo
+        const timeArray = [];
+        for (const key in historicalDataAnode.results) {
+            const { time } = historicalDataAnode.results[key];
+            const date = new Date(time);
+            timeArray.push(date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
         }
-
-        const anodeValueMap = new Map();
-        if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
-            Object.values(historicalDataAnode.results).forEach(item => {
-                if (item && typeof item.time === 'string' && typeof item._value === 'number') {
-                    const date = new Date(item.time);
-                    date.setMilliseconds(0); // Truncate milliseconds
-                    const normalizedTimeKey = date.toISOString();
-                    anodeValueMap.set(normalizedTimeKey, item._value);
-                }
-            });
-        }
-
-        const cathodeValueMap = new Map();
-        if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
-            Object.values(historicalDataCathode.results).forEach(item => {
-                if (item && typeof item.time === 'string' && typeof item._value === 'number') {
-                    const date = new Date(item.time);
-                    date.setMilliseconds(0); // Truncate milliseconds
-                    const normalizedTimeKey = date.toISOString();
-                    cathodeValueMap.set(normalizedTimeKey, item._value);
-                }
-            });
-        }
-
-        const allTimesSet = new Set();
-        if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
-            Object.values(historicalDataAnode.results).forEach(item => {
-                if (item && typeof item.time === 'string') {
-                    const date = new Date(item.time);
-                    date.setMilliseconds(0); // Truncate milliseconds
-                    allTimesSet.add(date.toISOString());
-                }
-            });
-        }
-        if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
-            Object.values(historicalDataCathode.results).forEach(item => {
-                if (item && typeof item.time === 'string') {
-                    const date = new Date(item.time);
-                    date.setMilliseconds(0); // Truncate milliseconds
-                    allTimesSet.add(date.toISOString());
-                }
-            });
-        }
-
-        // Los timestamps en sortedUniqueTimes ahora son todos strings ISO UTC normalizados y truncados al segundo
-        const sortedUniqueTimes = Array.from(allTimesSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-        const processedAnodeData = [];
-        const processedCathodeData = [];
-        const processedTimeLabels = [];
-
-        sortedUniqueTimes.forEach(timestamp => {
-            processedAnodeData.push(anodeValueMap.get(timestamp) ?? 0);
-            processedCathodeData.push(cathodeValueMap.get(timestamp) ?? 0);
-            const date = new Date(timestamp);
-            processedTimeLabels.push(
-                date.toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-            );
-        });
+        let uniqueTimeArray = [...new Set(timeArray)]
 
         // Actualizar estado centralizado para el gráfico
         setChartData({
-            anodeData: processedAnodeData,
-            cathodeData: processedCathodeData,
-            timeLabels: processedTimeLabels
+            anodeData,
+            cathodeData,
+            timeLabels: timeArray
         });
 
     }, [historicalDataAnode, historicalDataCathode]);

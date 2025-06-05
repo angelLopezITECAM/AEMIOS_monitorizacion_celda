@@ -52,7 +52,7 @@ export function SliderVertical({ item }) {
                 setErrorMsg("No se recibió confirmación del sistema.");
             }
         }, 5000);
-    }, 1000);
+    }, 1500);
 
     useEffect(() => {
         if (isConnected) {

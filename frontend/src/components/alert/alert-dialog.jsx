@@ -22,6 +22,29 @@ export function AlertDialog() {
 
     const [open, setOpen] = useState(false);
 
+    const sendEmailAlert = async (alertData) => {
+        try {
+            const emailMsg = `Nueva alerta: ${alertData.message.message} - ${alertData.message.value} ${alertData.message.ud || ''}`;
+
+
+            const response = await fetch('http://192.168.1.151:8002/send-mail-alarm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ msg: emailMsg }),
+            });
+
+            if (response.ok) {
+                console.log('Correo de alerta enviado con éxito');
+            } else {
+                console.error('Error al enviar correo de alerta:', await response.text());
+            }
+        } catch (error) {
+            console.error('Error al enviar correo de alerta:', error);
+        }
+    };
+
     useEffect(() => {
         if (isConnected) {
             subscribe(topicGetAlarms);
@@ -36,12 +59,15 @@ export function AlertDialog() {
     }, [isConnected, topicGetAlarms]);
 
     const lastMessage = messages.slice(-1)[0];
-    console.log(lastMessage)
+
 
     useEffect(() => {
         if (lastMessage) {
             setOpen(true)
         }
+
+        sendEmailAlert(lastMessage);
+
     }, [lastMessage]);
 
 

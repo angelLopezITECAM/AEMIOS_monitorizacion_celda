@@ -61,8 +61,9 @@ export function AlertSheet({ open, onOpenChange }) {
 
     useEffect(() => {
         if (lastMessage) {
-            console.log(lastMessage)
-            setAlertas((prev) => [lastMessage, ...prev,])
+            console.log(lastMessage);
+            setAlertas((prev) => [lastMessage, ...prev]);
+
         }
     }, [lastMessage]);
 

@@ -8,6 +8,8 @@ import asyncio
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from services.email import crear_mensaje, enviar
+from pydantic import BaseModel
 
 app = FastAPI(title="API con MQTT e InfluxDB", version="1.0.0")
 
@@ -36,6 +38,15 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/")
 async def root():
     return {"message": "API de monitoreo MQTT"}
+
+class EmailSchema(BaseModel):
+    msg: str
+@app.post("/send-mail-alarm")
+async def send_mail(data: EmailSchema):
+    destinatarios = "angel.lopez@itecam.com"
+    msg = data.msg
+    enviar(destinatarios, crear_mensaje(msg))
+    return {"message": "Correo enviado exitosamente"}
 
 @app.post("/publish")
 async def publish_message(topic: str, message: dict):
