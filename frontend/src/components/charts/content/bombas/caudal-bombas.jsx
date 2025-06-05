@@ -46,7 +46,10 @@ export function CaudalBombasChart() {
         if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
             Object.values(historicalDataAnode.results).forEach(item => {
                 if (item && typeof item.time === 'string' && typeof item._value === 'number') {
-                    anodeValueMap.set(item.time, item._value);
+                    const date = new Date(item.time);
+                    date.setMilliseconds(0); // Truncate milliseconds
+                    const normalizedTimeKey = date.toISOString();
+                    anodeValueMap.set(normalizedTimeKey, item._value);
                 }
             });
         }
@@ -55,7 +58,10 @@ export function CaudalBombasChart() {
         if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
             Object.values(historicalDataCathode.results).forEach(item => {
                 if (item && typeof item.time === 'string' && typeof item._value === 'number') {
-                    cathodeValueMap.set(item.time, item._value);
+                    const date = new Date(item.time);
+                    date.setMilliseconds(0); // Truncate milliseconds
+                    const normalizedTimeKey = date.toISOString();
+                    cathodeValueMap.set(normalizedTimeKey, item._value);
                 }
             });
         }
@@ -64,18 +70,23 @@ export function CaudalBombasChart() {
         if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
             Object.values(historicalDataAnode.results).forEach(item => {
                 if (item && typeof item.time === 'string') {
-                    allTimesSet.add(item.time);
+                    const date = new Date(item.time);
+                    date.setMilliseconds(0); // Truncate milliseconds
+                    allTimesSet.add(date.toISOString());
                 }
             });
         }
         if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
             Object.values(historicalDataCathode.results).forEach(item => {
                 if (item && typeof item.time === 'string') {
-                    allTimesSet.add(item.time);
+                    const date = new Date(item.time);
+                    date.setMilliseconds(0); // Truncate milliseconds
+                    allTimesSet.add(date.toISOString());
                 }
             });
         }
 
+        // Los timestamps en sortedUniqueTimes ahora son todos strings ISO UTC normalizados y truncados al segundo
         const sortedUniqueTimes = Array.from(allTimesSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
         const processedAnodeData = [];
