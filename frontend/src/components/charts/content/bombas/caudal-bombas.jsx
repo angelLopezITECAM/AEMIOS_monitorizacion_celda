@@ -36,25 +36,71 @@ export function CaudalBombasChart() {
 
     useEffect(() => {
         // Solo proceder si tenemos datos
-        if (!historicalDataAnode?.results || !historicalDataCathode?.results) return;
-
-        const anodeData = parseDataInflux(historicalDataAnode.results);
-        const cathodeData = parseDataInflux(historicalDataCathode.results);
-
-        // Procesar etiquetas de tiempo
-        const timeArray = [];
-        for (const key in historicalDataAnode.results) {
-            const { time } = historicalDataAnode.results[key];
-            const date = new Date(time);
-            timeArray.push(date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
+        if (!historicalDataAnode?.results || !historicalDataCathode?.results) {
+            // Opcionalmente, limpiar datos del gráfico o establecer un estado vacío por defecto si es necesario
+            // setChartData({ anodeData: [], cathodeData: [], timeLabels: [] });
+            return;
         }
-        let uniqueTimeArray = [...new Set(timeArray)]
+
+        const anodeValueMap = new Map();
+        if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
+            Object.values(historicalDataAnode.results).forEach(item => {
+                if (item && typeof item.time === 'string' && typeof item._value === 'number') {
+                    anodeValueMap.set(item.time, item._value);
+                }
+            });
+        }
+
+        const cathodeValueMap = new Map();
+        if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
+            Object.values(historicalDataCathode.results).forEach(item => {
+                if (item && typeof item.time === 'string' && typeof item._value === 'number') {
+                    cathodeValueMap.set(item.time, item._value);
+                }
+            });
+        }
+
+        const allTimesSet = new Set();
+        if (historicalDataAnode.results && typeof historicalDataAnode.results === 'object') {
+            Object.values(historicalDataAnode.results).forEach(item => {
+                if (item && typeof item.time === 'string') {
+                    allTimesSet.add(item.time);
+                }
+            });
+        }
+        if (historicalDataCathode.results && typeof historicalDataCathode.results === 'object') {
+            Object.values(historicalDataCathode.results).forEach(item => {
+                if (item && typeof item.time === 'string') {
+                    allTimesSet.add(item.time);
+                }
+            });
+        }
+
+        const sortedUniqueTimes = Array.from(allTimesSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+        const processedAnodeData = [];
+        const processedCathodeData = [];
+        const processedTimeLabels = [];
+
+        sortedUniqueTimes.forEach(timestamp => {
+            processedAnodeData.push(anodeValueMap.get(timestamp) ?? 0);
+            processedCathodeData.push(cathodeValueMap.get(timestamp) ?? 0);
+            const date = new Date(timestamp);
+            processedTimeLabels.push(
+                date.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            );
+        });
 
         // Actualizar estado centralizado para el gráfico
         setChartData({
-            anodeData,
-            cathodeData,
-            timeLabels: timeArray
+            anodeData: processedAnodeData,
+            cathodeData: processedCathodeData,
+            timeLabels: processedTimeLabels
         });
 
     }, [historicalDataAnode, historicalDataCathode]);

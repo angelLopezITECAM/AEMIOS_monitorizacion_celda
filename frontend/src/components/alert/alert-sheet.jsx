@@ -62,14 +62,13 @@ export function AlertSheet({ open, onOpenChange }) {
     useEffect(() => {
         if (lastMessage) {
             console.log(lastMessage)
-            setAlertas((prev) => [...prev, lastMessage])
+            setAlertas((prev) => [lastMessage, ...prev,])
         }
     }, [lastMessage]);
 
     useEffect(() => {
         if (!historicalData?.results) return;
         const newData = [];
-        console.log(historicalData)
 
         Object.keys(historicalData.results).forEach(key => {
             const result = historicalData.results[key];
@@ -78,11 +77,11 @@ export function AlertSheet({ open, onOpenChange }) {
                 message: result,
                 timestamp: result.time
             }
-            console.log(newAlert)
+
             newData.push(newAlert);
         });
 
-        setAlertas((prev) => [...prev, ...newData]);
+        setAlertas((prev) => [...newData, ...prev]);
     }, [historicalData])
 
 
@@ -140,7 +139,6 @@ export function AlertSheet({ open, onOpenChange }) {
                 <div className="flex-1 overflow-auto">
                     <div className="p-4 space-y-4">
                         {alertas?.map((alert) => (
-                            console.log(alert),
                             <div
                                 key={alert.timestamp}
                                 className="flex items-center gap-4 p-4 rounded-3xl border cursor-pointer hover:bg-muted/50 transition-colors"
