@@ -23,8 +23,9 @@ export function AlertDialog() {
     const [open, setOpen] = useState(false);
 
     const sendEmailAlert = async (alertData) => {
+        if (!alertData) return;
         try {
-            const emailMsg = `Nueva alerta: ${alertData.message.message} - ${alertData.message.value} ${alertData.message.ud || ''}`;
+            const emailMsg = `Nueva alerta: ${alertData?.message.message} - ${alertData?.message.value} ${alertData?.message.ud || ''}`;
 
 
             const response = await fetch('http://192.168.1.151:8002/send-mail-alarm', {
