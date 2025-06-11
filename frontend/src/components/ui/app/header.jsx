@@ -50,7 +50,7 @@ export function Header() {
                     <Bell className='h-4 w-4' />
                 </Button>
 
-                <AlertDialog />
+                {/* <AlertDialog /> */}
 
             </header>
 
