@@ -8,7 +8,7 @@ export const useMQTT = () => useContext(MQTTContext);
 // Límite de mensajes a guardar en el historial para evitar problemas de rendimiento.
 const MAX_MESSAGES_IN_HISTORY = 200;
 
-export const MQTTProvider = ({ children }) => {
+export const MqttProvider = ({ children }) => {
     const [client, setClient] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState([]);
