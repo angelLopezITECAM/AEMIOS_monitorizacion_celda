@@ -43,7 +43,7 @@ class EmailSchema(BaseModel):
     msg: str
 @app.post("/send-mail-alarm")
 async def send_mail(data: EmailSchema):
-    destinatarios = "angel.lopez@itecam.com"
+    destinatarios = "celdaemh2@gmail.com"
     msg = data.msg
     enviar(destinatarios, crear_mensaje(msg))
     return {"message": "Correo enviado exitosamente"}
