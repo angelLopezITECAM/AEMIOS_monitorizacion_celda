@@ -1,9 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import mqtt from 'mqtt';
 
-const MQTTContext = createContext();
+const MqttContext = createContext();
 
-export const useMQTT = () => useContext(MQTTContext);
+export const useMQTT = () => {
+    const context = useContext(MqttContext);
+    if (!context) throw new Error('useMQTT must be used within a MqttProvider');
+    return context;
+}
 
 // Límite de mensajes a guardar en el historial para evitar problemas de rendimiento.
 const MAX_MESSAGES_IN_HISTORY = 200;
@@ -12,81 +16,237 @@ export const MqttProvider = ({ children }) => {
     const [client, setClient] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [messages, setMessages] = useState([]);
+    const pingIntervalRef = useRef(null);
+    const connectionTimeoutRef = useRef(null);
+    const manualReconnectTimeoutRef = useRef(null);
+    const activeSubscriptionsRef = useRef(new Set());
+    const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-    useEffect(() => {
-        const mqttClient = mqtt.connect('ws://192.168.1.151:8083/mqtt');
+    const setupMqttConnection = () => {
+
+        if (client) {
+            try {
+                client.end(true);
+            } catch (e) {
+                console.warn('Error al cerrar el cliente MQTT existente:', e);
+            }
+        }
+
+        console.log(`Conectando al broker MQTT (intento ${connectionAttempts + 1})...`);
+
+        const mqttClient = mqtt.connect('ws://192.168.15.151:9001', {
+            keepalive: 30,
+            reconnectPeriod: 3000,
+            connectTimeout: 5000,
+            clean: true,
+            clientId: 'web-client-' + Math.random().toString(16).substr(2, 8),
+            will: {
+                topic: 'clients/webapp',
+                payload: JSON.stringify({ status: 'disconnected', timestamp: new Date().toISOString() }),
+                qos: 1,
+                retain: false
+            }
+        });
+
         setClient(mqttClient);
 
         mqttClient.on('connect', () => {
             console.log('Conectado al broker MQTT');
             setIsConnected(true);
-        });
+            setConnectionAttempts(0);
 
-        mqttClient.on('error', (err) => {
-            console.error('Error de conexión:', err);
-            mqttClient.end();
+            // Re-suscribir a todos los tópicos activos
+            activeSubscriptionsRef.current.forEach(topic => {
+                mqttClient.subscribe(topic, (err) => {
+                    if (err) console.error(`Error al re-suscribir a ${topic}:`, err);
+                    else console.log(`Re-suscrito a ${topic}`);
+                });
+            });
+
+            // Configurar un ping para mantener la conexión viva
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = setInterval(() => {
+                if (mqttClient.connected) {
+                    mqttClient.publish('clients/webapp/ping', JSON.stringify({
+                        timestamp: new Date().toISOString()
+                    }), { qos: 0, retain: false });
+
+                }
+            }, 25000); // menos que el keepalive
+
+
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current);
+                connectionTimeoutRef.current = null;
+            }
+            if (manualReconnectTimeoutRef.current) {
+                clearTimeout(manualReconnectTimeoutRef.current);
+                manualReconnectTimeoutRef.current = null;
+            }
         });
 
         mqttClient.on('reconnect', () => {
-            console.log('Reconectando...');
+            console.log('Reconectando al broker MQTT...');
+            setIsConnected(false);
         });
 
-        mqttClient.on('message', (topic, message) => {
-            const newMessage = {
-                topic: topic.toString(),
-                message: JSON.parse(message.toString()),
-                timestamp: new Date().toISOString(),
-            };
+        mqttClient.on('close', () => {
+            console.log('Conexión cerrada con el broker MQTT');
+            setIsConnected(false);
 
-            // --- ESTA ES LA CORRECCIÓN CLAVE ---
-            // Se añade el nuevo mensaje y se asegura que la lista no crezca indefinidamente.
-            setMessages(prevMessages => {
-                const updatedMessages = [...prevMessages, newMessage];
-                // Si la lista supera el tamaño máximo, se recorta para mantener solo los últimos mensajes.
-                if (updatedMessages.length > MAX_MESSAGES_IN_HISTORY) {
-                    return updatedMessages.slice(updatedMessages.length - MAX_MESSAGES_IN_HISTORY);
-                }
-                return updatedMessages;
-            });
+            // Configurar una reconexión manual si la reconexión automática del cliente falla
+            if (manualReconnectTimeoutRef.current) clearTimeout(manualReconnectTimeoutRef.current);
+            manualReconnectTimeoutRef.current = setTimeout(() => {
+                console.log('Intentando reconexión manual después de 5 segundos...');
+                setConnectionAttempts(prev => prev + 1);
+                setupMqttConnection();
+            }, 5000);
         });
+
+        mqttClient.on('error', (error) => {
+            console.error('Error en la conexión MQTT:', error);
+            setIsConnected(false);
+
+            // No es necesario iniciar una reconexión manual aquí, ya que el evento 'close' se disparará
+        });
+
+        mqttClient.on('message', (topic, payload) => {
+            try {
+
+
+                const newMessage = {
+                    topic: topic.toString(),
+                    message: JSON.parse(payload.toString()),
+                    timestamp: new Date().toISOString(),
+                };
+
+
+                setMessages(prevMessages => {
+                    const updatedMessages = [...prevMessages, newMessage];
+                    // Si la lista supera el tamaño máximo, se recorta para mantener solo los últimos mensajes.
+                    if (updatedMessages.length > MAX_MESSAGES_IN_HISTORY) {
+                        return updatedMessages.slice(updatedMessages.length - MAX_MESSAGES_IN_HISTORY);
+                    }
+                    return updatedMessages;
+                });
+            } catch (e) {
+                console.error('Error al procesar mensaje MQTT:', e);
+            }
+        });
+    };
+
+    useEffect(() => {
+        setupMqttConnection();
+
 
         return () => {
-            if (mqttClient) {
-                mqttClient.end();
-                setIsConnected(false);
+            if (client) {
+                try {
+                    console.log('Limpiando cliente MQTT');
+                    client.end(true);
+                } catch (e) {
+                    console.warn('Error durante la limpieza:', e);
+                }
             }
+
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+            if (manualReconnectTimeoutRef.current) clearTimeout(manualReconnectTimeoutRef.current);
+
+            setClient(null);
+            setIsConnected(false);
         };
     }, []);
 
-    const publish = (topic, message) => {
-        if (client && isConnected) {
-            client.publish(topic, message);
-        } else {
-            console.error('No se puede publicar. Cliente no conectado.');
-        }
+    const publish = (topic, message, timeout = 2500) => {
+        return new Promise((resolve, reject) => {
+            const start = Date.now();
+
+            function tryPublish() {
+                if (!client) {
+                    reject(new Error('No hay cliente MQTT disponible'));
+                    return;
+                }
+
+                if (client.connected) {
+                    try {
+                        client.publish(topic, message, { qos: 1 }, (err) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(true);
+                            }
+                        });
+                    } catch (e) {
+                        reject(e);
+                    }
+                } else {
+                    if (Date.now() - start > timeout) {
+                        reject(new Error('Timeout esperando conexión MQTT'));
+                    } else {
+                        setTimeout(tryPublish, 1000); // Reintenta cada 100ms
+                    }
+                }
+            }
+
+            tryPublish();
+        });
     };
 
-    const subscribe = (topic) => {
-        if (client && isConnected) {
-            client.subscribe(topic, (err) => {
+    const subscribe = (topic, subOptions = { qos: 0 }) => {
+        if (client && client.connected) {
+            client.subscribe(topic, subOptions, (err) => {
                 if (err) {
-                    console.error('Error al suscribirse:', topic, err);
+                    console.error(`(Provider) Error al suscribir a ${topic}:`, err);
                 } else {
-                    console.log('Suscrito a:', topic);
+                    console.log(`(Provider) Suscrito a ${topic}`);
+                    activeSubscriptionsRef.current.add(topic);
                 }
             });
+        } else {
+            console.warn(`(Provider) No conectado, no se puede suscribir a ${topic}.`);
+            // Guardar la suscripción para intentarlo más tarde
+            activeSubscriptionsRef.current.add(topic);
         }
     };
 
     const unsubscribe = (topic) => {
-        if (client && isConnected) {
-            client.unsubscribe(topic);
+        if (client && client.connected) {
+            client.unsubscribe(topic, (err) => {
+                if (err) {
+                    console.error(`(Provider) Error al desuscribir de ${topic}:`, err);
+                } else {
+                    console.log(`(Provider) Desuscrito de ${topic}`);
+                    activeSubscriptionsRef.current.delete(topic);
+                }
+            });
+        } else {
+            console.warn(`(Provider) No conectado, no se puede desuscribir de ${topic}.`);
+            // Eliminar de las suscripciones pendientes
+            activeSubscriptionsRef.current.delete(topic);
         }
     };
 
+    const reconnect = () => {
+        console.log('Forzando reconexión manual...');
+        setConnectionAttempts(prev => prev + 1);
+        setupMqttConnection();
+    };
+
+    const value = {
+        client,
+        isConnected,
+        messages,
+        publish,
+        subscribe,
+        unsubscribe,
+        reconnect, // Exponer la función de reconexión manual
+    };
+
     return (
-        <MQTTContext.Provider value={{ isConnected, messages, publish, subscribe, unsubscribe }}>
+        <MqttContext.Provider value={value}>
             {children}
-        </MQTTContext.Provider>
+        </MqttContext.Provider>
     );
-};
+}
+
