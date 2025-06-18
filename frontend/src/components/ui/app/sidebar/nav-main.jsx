@@ -52,15 +52,26 @@ const menuCollapsible = (item) => {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                     <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
-                            <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild>
-                                    <NavLink to={subItem.url}>
-                                        <span>{subItem.title}</span>
-                                    </NavLink>
-                                </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                        ))}
+                        {item.items?.map((subItem) => {
+                            // Determinar si la URL es externa
+                            const isExternalUrl = subItem.url && (subItem.url.startsWith('http://') || subItem.url.startsWith('https://'));
+
+                            return (
+                                <SidebarMenuSubItem key={subItem.title}>
+                                    <SidebarMenuSubButton asChild>
+                                        {isExternalUrl ? (
+                                            <a href={subItem.url} target="_blank" rel="noopener noreferrer">
+                                                <span>{subItem.title}</span>
+                                            </a>
+                                        ) : (
+                                            <NavLink to={subItem.url}>
+                                                <span>{subItem.title}</span>
+                                            </NavLink>
+                                        )}
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            );
+                        })}
                     </SidebarMenuSub>
                 </CollapsibleContent>
             </SidebarMenuItem>
@@ -69,16 +80,24 @@ const menuCollapsible = (item) => {
 }
 
 const menuInline = (item) => {
-    return (
+    // Determinar si la URL es externa
+    const isExternalUrl = item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'));
 
+    return (
         <SidebarMenuItem key={item.title}>
             <SidebarMenuButton asChild tooltip={item.title}>
-                <NavLink to={item.url}>
-                    <item.icon />
-                    <span>{item.title}</span>
-                </NavLink>
+                {isExternalUrl ? (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        <item.icon />
+                        <span>{item.title}</span>
+                    </a>
+                ) : (
+                    <NavLink to={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                    </NavLink>
+                )}
             </SidebarMenuButton>
         </SidebarMenuItem>
-
     )
 }

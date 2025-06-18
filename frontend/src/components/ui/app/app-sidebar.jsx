@@ -1,4 +1,4 @@
-import { Home, FolderKanban, LayoutPanelLeft } from "lucide-react"
+import { Home, FolderKanban, LayoutPanelLeft, TestTubeDiagonal } from "lucide-react"
 
 import {
     Sidebar,
@@ -30,6 +30,22 @@ const data = {
                 {
                     title: "Termopar",
                     url: "/dashboard/termopar",
+                },
+            ],
+        },
+        {
+            title: "Hidrógeno",
+            url: "#",
+            icon: TestTubeDiagonal,
+            isActive: true,
+            items: [
+                {
+                    title: "Sensor",
+                    url: "https://io.adafruit.com/jfitecam/feeds/h2",
+                },
+                {
+                    title: "Temperatura",
+                    url: "https://io.adafruit.com/jfitecam/feeds/t",
                 },
             ],
         },
