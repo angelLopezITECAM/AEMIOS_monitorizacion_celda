@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { fetcher } from '@/lib/itecam/fetcher';
 import { useTimeFilter } from '@/context/filter-time-context';
 import { useMQTT } from '@/context/mqtt-context';
+import { API_IP } from "@/lib/utils";
 
 /**
  * Hook genérico para gestionar datos de un gráfico.
@@ -20,7 +21,7 @@ export function useChartData({ magnitude, fixedValue, processValue }) {
 
     // Obtener datos históricos con SWR
     const { data: historicalData } = useSWR(
-        `http://192.168.15.151:8002/api/influx/data/${magnitude}?${timeFilter}`,
+        `${API_IP}/api/influx/data/${magnitude}?${timeFilter}`,
         fetcher,
         {
             revalidateIfStale: false,

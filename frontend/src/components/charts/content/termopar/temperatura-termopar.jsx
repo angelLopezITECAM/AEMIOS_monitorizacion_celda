@@ -4,6 +4,7 @@ import useSWR from "swr"
 import { fetcher } from "@/lib/itecam/fetcher";
 import { useTimeFilter } from '@/context/filter-time-context';
 import { parseDataInflux } from "@/lib/itecam/parse-data-influx";
+import { API_IP } from "@/lib/utils";
 
 export function TemperaturaTermoparChart() {
     const chartRef = useRef(null);
@@ -22,7 +23,7 @@ export function TemperaturaTermoparChart() {
     }
 
     const { data: historicalData, error, isLoading } = useSWR(
-        `http://192.168.15.151:8002/api/influx/data/temperature_tc?${timeFilter}`,
+        `${API_IP}/api/influx/data/temperature_tc?${timeFilter}`,
         fetcher,
         configSWR
     )

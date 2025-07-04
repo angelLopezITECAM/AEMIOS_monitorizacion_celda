@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import mqtt from 'mqtt';
+import { MQTT_IP } from "@/lib/utils";
 
 const MqttContext = createContext();
 
@@ -31,7 +32,7 @@ export const MqttProvider = ({ children }) => {
 
         console.log(`Conectando al broker MQTT (intento ${connectionAttempts + 1})...`);
 
-        const mqttClient = mqtt.connect('ws://192.168.15.151:9001', {
+        const mqttClient = mqtt.connect(MQTT_IP, {
             keepalive: 30,
             reconnectPeriod: 3000,
             connectTimeout: 5000,

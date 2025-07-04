@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { fetcher } from '@/lib/itecam/fetcher';
 import { useTimeFilter } from '@/context/filter-time-context';
 // parseDataInflux might not be directly used in the same way, or can be adapted if needed elsewhere.
+import { API_IP } from "@/lib/utils";
 
 export function useMultiSeriesChartData(magnitudes) {
     const { getFilterQueryString } = useTimeFilter();
@@ -25,7 +26,7 @@ export function useMultiSeriesChartData(magnitudes) {
     };
 
     const fetchUrls = magnitudes.map(mag =>
-        `http://192.168.15.151:8002/api/influx/data/${mag.endpoint}?${timeFilter}`
+        `${API_IP}/api/influx/data/${mag.endpoint}?${timeFilter}`
     );
 
     // Fetch data for all series

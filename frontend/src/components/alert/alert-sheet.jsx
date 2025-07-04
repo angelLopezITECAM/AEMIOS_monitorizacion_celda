@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { formatDateWithFormat } from "@/lib/itecam/date"
 import useSWR from 'swr';
 import { fetcher } from '@/lib/itecam/fetcher';
+import { API_IP } from "@/lib/utils";
 
 // Definimos el período de "enfriamiento" en milisegundos (1 hora)
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000;
@@ -50,7 +51,7 @@ export function AlertSheet({ open, onOpenChange }) {
     const timeFilter = `start=${startDate}&end=${endDate}`;
 
     const { data: historicalData } = useSWR(
-        `http://192.168.15.151:8002/api/influx/alarms?${timeFilter}`,
+        `${API_IP}/api/influx/alarms?${timeFilter}`,
         fetcher,
         {
             revalidateIfStale: false,
