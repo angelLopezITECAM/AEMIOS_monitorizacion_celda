@@ -5,6 +5,7 @@ import { fetcher } from "@/lib/itecam/fetcher";
 import { useTimeFilter } from '@/context/filter-time-context';
 import { parseDataInflux } from "@/lib/itecam/parse-data-influx";
 import { getPotencia } from '@/lib/itecam/electricity';
+import { API_IP } from "@/lib/utils";
 
 export function PotenciaBombasChart() {
     const voltaje = 24
@@ -24,7 +25,7 @@ export function PotenciaBombasChart() {
     }
 
     const { data: historicalData, error, isLoading } = useSWR(
-        `http://192.168.15.151:8002/api/influx/data/amperage_pumps?${timeFilter}`,
+        `${API_IP}/api/influx/data/amperage_pumps?${timeFilter}`,
         fetcher,
         configSWR
     )
