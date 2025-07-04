@@ -16,12 +16,15 @@ import { formatDateWithFormat } from "@/lib/itecam/date"
 import useSWR from 'swr';
 import { fetcher } from '@/lib/itecam/fetcher';
 
+// Definimos el período de "enfriamiento" en milisegundos (1 hora)
+const ALERT_COOLDOWN_MS = 60 * 60 * 1000;
 
 export function AlertSheet({ open, onOpenChange }) {
 
     const topicGetAlarms = `devices/alarms`;
     const { isConnected, messages, publish, subscribe, unsubscribe } = useMQTT();
     const [isLoading, setIsLoading] = useState(true);
+    const [lastAlertTimestamps, setLastAlertTimestamps] = useState({});
 
     useEffect(() => {
         if (isConnected) {
@@ -60,12 +63,27 @@ export function AlertSheet({ open, onOpenChange }) {
     const lastMessage = messages.slice(-1)[0];
 
     useEffect(() => {
-        if (lastMessage) {
-            console.log(lastMessage);
-            setAlertas((prev) => [lastMessage, ...prev]);
-
+        if (!lastMessage || lastMessage.topic !== topicGetAlarms) {
+            return;
         }
-    }, [lastMessage]);
+
+        const { message } = lastMessage;
+        const alertKey = message.magnitude;
+
+        const lastShownTime = lastAlertTimestamps[alertKey];
+        const currentTime = Date.now();
+
+        const shouldAddAlert = !lastShownTime || (currentTime - lastShownTime > ALERT_COOLDOWN_MS);
+
+        if (shouldAddAlert) {
+            setAlertas((prev) => [lastMessage, ...prev]);
+            setLastAlertTimestamps(prev => ({
+                ...prev,
+                [alertKey]: currentTime
+            }));
+        }
+
+    }, [lastMessage, lastAlertTimestamps]);
 
     useEffect(() => {
         if (!historicalData?.results) return;

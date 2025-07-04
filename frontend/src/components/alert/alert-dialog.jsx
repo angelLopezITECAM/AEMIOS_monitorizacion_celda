@@ -10,7 +10,7 @@ import {
 
 import { useMQTT } from "@/context/mqtt-context";
 import { useEffect, useState } from "react"
-import { sendEmailOnAlert } from "@/lib/itecam/email";
+import { sendEmailOnAlert } from "@/lib/itecam/email"; // 1. IMPORTAMOS LA FUNCIÓN
 
 // Definimos el período de "enfriamiento" en milisegundos (1 hora)
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000;
@@ -29,7 +29,6 @@ export function AlertDialog() {
     // Efecto para la suscripción a los tópicos de MQTT
     useEffect(() => {
         if (isConnected) {
-            // Ya no necesitamos suscribirnos a 'status' o 'data', solo a las alarmas
             subscribe(topicGetAlarms);
             return () => {
                 unsubscribe(topicGetAlarms);
@@ -53,24 +52,26 @@ export function AlertDialog() {
         const lastShownTime = lastAlertTimestamps[alertKey];
         const currentTime = Date.now();
 
-        // Condición para mostrar la alerta:
-        // 1. Si nunca se ha mostrado antes (lastShownTime es undefined)
-        // 2. O si ha pasado más de una hora desde la última vez.
         const shouldShowAlert = !lastShownTime || (currentTime - lastShownTime > ALERT_COOLDOWN_MS);
 
         if (shouldShowAlert) {
             console.log(`MOSTRANDO ALERTA Y ENVIANDO CORREO: ${alertKey}.`);
+
+            // 2. LLAMAMOS A LA FUNCIÓN PARA ENVIAR EL CORREO
             sendEmailOnAlert(lastMessage)
                 .then(() => console.log("Solicitud de envío de correo realizada."))
                 .catch(error => console.error("Error al intentar enviar el correo de alerta:", error));
 
+            // Mostramos el diálogo
             setCurrentAlert(lastMessage);
             setOpen(true);
 
+            // Actualizamos el estado con la nueva marca de tiempo para esta alerta
             setLastAlertTimestamps(prev => ({
                 ...prev,
                 [alertKey]: currentTime
             }));
+
         } else {
             const timeLeft = Math.round((ALERT_COOLDOWN_MS - (currentTime - lastShownTime)) / 60000);
             console.log(`IGNORANDO ALERTA REPETIDA: ${alertKey}. Reintentar en ${timeLeft} minutos.`);
