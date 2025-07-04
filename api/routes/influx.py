@@ -41,7 +41,7 @@ async def post_data(point: DataPoint):
     return {"status": "Point inserted successfully"}
 
 @router.get("/data/{measurement}")
-async def post_data(measurement: str, start: str = None, end: str = None):
+async def get_data(measurement: str, start: str = None, end: str = None):
         
     if measurement not in ALLOWED_MEASUREMENTS:
         raise HTTPException(
@@ -66,7 +66,7 @@ async def post_data(measurement: str, start: str = None, end: str = None):
     }
 
 @router.get("/alarms")
-async def post_data( start: str = None, end: str = None):
+async def get_alarms_route( start: str = None, end: str = None):
         
 
     if start is None or end is None:

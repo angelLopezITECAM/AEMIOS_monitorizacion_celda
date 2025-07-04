@@ -10,6 +10,7 @@ import {
 
 import { useMQTT } from "@/context/mqtt-context";
 import { useEffect, useState } from "react"
+import { sendEmailOnAlert } from "@/lib/itecam/email";
 
 // Definimos el período de "enfriamiento" en milisegundos (1 hora)
 const ALERT_COOLDOWN_MS = 60 * 60 * 1000;
@@ -58,18 +59,18 @@ export function AlertDialog() {
         const shouldShowAlert = !lastShownTime || (currentTime - lastShownTime > ALERT_COOLDOWN_MS);
 
         if (shouldShowAlert) {
-            console.log(`MOSTRANDO ALERTA: ${alertKey}. No se mostrará de nuevo por 1 hora.`);
+            console.log(`MOSTRANDO ALERTA Y ENVIANDO CORREO: ${alertKey}.`);
+            sendEmailOnAlert(lastMessage)
+                .then(() => console.log("Solicitud de envío de correo realizada."))
+                .catch(error => console.error("Error al intentar enviar el correo de alerta:", error));
 
-            // Mostramos el diálogo
             setCurrentAlert(lastMessage);
             setOpen(true);
 
-            // Actualizamos el estado con la nueva marca de tiempo para esta alerta
             setLastAlertTimestamps(prev => ({
                 ...prev,
                 [alertKey]: currentTime
             }));
-
         } else {
             const timeLeft = Math.round((ALERT_COOLDOWN_MS - (currentTime - lastShownTime)) / 60000);
             console.log(`IGNORANDO ALERTA REPETIDA: ${alertKey}. Reintentar en ${timeLeft} minutos.`);

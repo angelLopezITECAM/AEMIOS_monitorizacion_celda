@@ -2,45 +2,33 @@ from bbdd.influxdb import client
 import pytz
 from datetime import datetime
 
-def get_measurement(measurement, start=None, end=None):
-    
+def get_measurement(measurement, start=None, end=None, group_interval='1h'):
     """
-    Obtiene los puntos de un measurement específico en InfluxDB.
+    Obtiene los puntos de un measurement, agrupándolos en intervalos de tiempo
+    para mejorar el rendimiento.
     """
+    if not start or not end:
+        raise ValueError("Los parámetros 'start' y 'end' son obligatorios.")
 
-    if start and end:
-        # Definir la zona horaria local (España)
-        local_tz = pytz.timezone('Europe/Madrid')
-        
-        # Convertir los strings ISO a objetos datetime con pytz
-        try:
-            # Asegurar que las fechas tienen información de zona horaria
-            if '+' not in start and 'Z' in start:
-                # Si es UTC (termina en Z), convertir a objeto datetime en UTC
-                start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
-            else:
-                # Ya tiene información de zona horaria o no tiene Z
-                start_dt = datetime.fromisoformat(start)
-                
-            if '+' not in end and 'Z' in end:
-                end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
-            else:
-                end_dt = datetime.fromisoformat(end)
-                
-            # Convertir a la zona horaria local
-            start_local = start_dt.astimezone(local_tz)
-            end_local = end_dt.astimezone(local_tz)
-            
-            # Formatear para InfluxDB (requiere formato ISO)
-            start = start_local.isoformat()
-            end = end_local.isoformat()
-            
-            print(f"Fechas convertidas: {start} a {end}")
-        except ValueError as e:
-            print(f"Error al parsear fechas: {e}")
-            # Continuar con las fechas originales si hay error
-    
-    query = f'SELECT * FROM "{measurement}" WHERE time >= \'{start}\' AND time <= \'{end}\' ORDER BY time ASC'
+    # El manejo de zonas horarias es correcto, lo mantenemos.
+    local_tz = pytz.timezone('Europe/Madrid')
+    try:
+        start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
+        start_local = start_dt.astimezone(local_tz).isoformat()
+        end_local = end_dt.astimezone(local_tz).isoformat()
+    except ValueError as e:
+        raise ValueError(f"Error al parsear fechas: {e}")
+
+    # ---- QUERY OPTIMIZADA ----
+    # Agrupamos por el intervalo de tiempo (ej. '1m') y seleccionamos el primer valor de cada grupo.
+    # Usamos 'fill(none)' para no tener puntos nulos donde no hay datos.
+    query = f'''
+        SELECT FIRST(*) FROM "{measurement}" 
+        WHERE time >= \'{start_local}\' AND time <= \'{end_local}\' 
+        GROUP BY time({group_interval}) fill(none)
+        ORDER BY time ASC
+    '''
 
     try:
         result = client.query(query)
@@ -48,74 +36,63 @@ def get_measurement(measurement, start=None, end=None):
         return points
     except Exception as e:
         raise Exception(f"Error al consultar InfluxDB: {e}")
-    
 
-def get_alarms(start=None, end=None):
+def get_alarms(start=None, end=None, group_interval='1h'):
+    """
+    Obtiene las alarmas de varios measurements, agrupando los resultados para
+    evitar la sobrecarga de datos.
+    """
+    if not start or not end:
+        raise ValueError("Los parámetros 'start' y 'end' son obligatorios.")
     
-    """
-    Obtiene los puntos de un measurement específico en InfluxDB.
-    """
+    # El manejo de zonas horarias es correcto.
+    local_tz = pytz.timezone('Europe/Madrid')
+    try:
+        start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
+        start_local = start_dt.astimezone(local_tz).isoformat()
+        end_local = end_dt.astimezone(local_tz).isoformat()
+    except ValueError as e:
+        raise ValueError(f"Error al parsear fechas: {e}")
 
-    if start and end:
-        # Definir la zona horaria local (España)
-        local_tz = pytz.timezone('Europe/Madrid')
-        
-        # Convertir los strings ISO a objetos datetime con pytz
-        try:
-            # Asegurar que las fechas tienen información de zona horaria
-            if '+' not in start and 'Z' in start:
-                # Si es UTC (termina en Z), convertir a objeto datetime en UTC
-                start_dt = datetime.fromisoformat(start.replace('Z', '+00:00'))
-            else:
-                # Ya tiene información de zona horaria o no tiene Z
-                start_dt = datetime.fromisoformat(start)
-                
-            if '+' not in end and 'Z' in end:
-                end_dt = datetime.fromisoformat(end.replace('Z', '+00:00'))
-            else:
-                end_dt = datetime.fromisoformat(end)
-                
-            # Convertir a la zona horaria local
-            start_local = start_dt.astimezone(local_tz)
-            end_local = end_dt.astimezone(local_tz)
-            
-            # Formatear para InfluxDB (requiere formato ISO)
-            start = start_local.isoformat()
-            end = end_local.isoformat()
-            
-            print(f"Fechas convertidas: {start} a {end}")
-        except ValueError as e:
-            print(f"Error al parsear fechas: {e}")
-            # Continuar con las fechas originales si hay error
-    
-        measurements = ["alarm_flow_cathode", "alarm_flow_anode"]
+    # Measurements que contienen las alarmas
+    measurements = ["alarm_flow_cathode", "alarm_flow_anode", "alarm_temperature_tc"]
     all_points = []
-    
+
     for measurement in measurements:
-        query = f'SELECT * FROM "{measurement}" WHERE time >= \'{start}\' AND time <= \'{end}\' ORDER BY time ASC'
+        # ---- QUERY OPTIMIZADA ----
+        # Usamos FIRST(value) para obtener el primer valor en cada ventana de tiempo.
+        # También seleccionamos los campos necesarios y los agrupamos por todos ellos.
+        query = f'''
+            SELECT 
+                FIRST("value") AS "value", 
+                FIRST("message") AS "message", 
+                FIRST("ud") AS "ud"
+            FROM "{measurement}"
+            WHERE time >= \'{start_local}\' AND time <= \'{end_local}\'
+            GROUP BY time({group_interval}), * fill(none)
+        '''
         
         try:
             result = client.query(query)
             points = list(result.get_points())
             
-            # Añadir el nombre del measurement a cada punto
             for point in points:
                 point["measurement"] = measurement
-                
-            all_points.extend(points)
+                all_points.extend([point]) # Usamos extend para añadir el punto
         except Exception as e:
             print(f"Error consultando {measurement}: {e}")
     
-    # Ordenar todos los puntos por tiempo
+    # Ordenamos todas las alertas combinadas por tiempo
     all_points.sort(key=lambda x: x["time"])
     
     return all_points
 
-    
 def insertar(influx_point):
-
+    """
+    Inserta un punto de datos en InfluxDB.
+    """
     try:
-        # write_points espera una lista de puntos
         success = client.write_points([influx_point])
         if not success:
             print("Error al escribir el punto de datos en InfluxDB.")
